@@ -505,6 +505,8 @@ tr.row-pago td{opacity:.75}
       <select id="h-mov" onchange="rendHist()"><option value="">Todos</option><option value="Entrada">Entrada</option><option value="Sa&iacute;da">Sa&iacute;da</option></select>
       <select id="h-ano" onchange="rendHist()"></select>
       <select id="h-mes" onchange="rendHist()"></select>
+      <button id="h-btn-receber" class="btn btn-out" onclick="setHFutFilt('receber')">&#8599; A Receber</button>
+      <button id="h-btn-pagar" class="btn btn-out" onclick="setHFutFilt('pagar')">&#8600; A Pagar</button>
       <button class="btn btn-out" onclick="clearHFilt()">&#10005; Limpar</button>
     </div>
     <div class="tbl-wrap">
