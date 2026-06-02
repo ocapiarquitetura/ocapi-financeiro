@@ -642,8 +642,7 @@ tr.row-pago td{opacity:.75}
 <div id="mob">
   <div class="mob-header">
     <div class="mob-logo">
-      <svg width="22" height="22" viewBox="0 0 28 28" style="color:#fff"><use href="#logo"/></svg>
-      OCAPI
+      <img id="mob-logo-img" style="height:28px;width:auto;display:block">
     </div>
     <span id="mob-title" style="font-size:13px;font-weight:600;opacity:.7">Dashboard</span>
   </div>
@@ -1535,6 +1534,8 @@ function mobNav(p,el){
 function rendMob(){
   if(mobP==='dash')rendMobDash();else if(mobP==='hist')rendMobHist();
   else if(mobP==='alert')rendMobAlert();else if(mobP==='admin')rendMobAdmin();
+  var mobLogo=document.getElementById('mob-logo-img');
+  if(mobLogo&&!mobLogo.src){var deskLogo=document.querySelector('#sb-logo-img img');if(deskLogo)mobLogo.src=deskLogo.src;}
 }
 function mkpi(l,v,c){return '<div class="mob-kpi"><div class="mob-kpi-lbl">'+l+'</div><div class="mob-kpi-val" style="color:'+c+'">'+v+'</div></div>';}
 function getMobDashData(){
