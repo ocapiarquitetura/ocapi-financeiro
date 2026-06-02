@@ -742,10 +742,9 @@ var DADOS_BASE=dados.slice();
 function salvarLocal(){salvarFirebase();}
 function salvarFirebase(){
   if(!fbAuth||!fbAuth.currentUser){return;}
-  var novos=dados.filter(function(r){return r._new;});
   var cfg={CLI_HON:CLI_HON,RT_EMPRESAS:RT_EMPRESAS,DESPESAS:DESPESAS,DESP_MAP:DESP_MAP,ORIGENS_ENTRADA:ORIGENS_ENTRADA,ORIGENS_SAIDA:ORIGENS_SAIDA};
-  fbDb.collection('ocapi').doc('app').set({dados:novos,config:cfg})
-    .then(function(){console.log('Salvo no Firebase');})
+  fbDb.collection('ocapi').doc('app').set({dados:dados,config:cfg,migrated:true})
+    .then(function(){console.log('Salvo no Firebase ('+dados.length+' registros)');})
     .catch(function(e){showToast('Erro ao salvar: '+e.message,'#c0392b');});
 }
 var CLI_HON=["Aelson e Conceição", "Aguinado e Magda", "Aguinaldo e Magda", "Amália e Emerson", "Ana Carolina Fonseca", "Ana Luiza e Eduardo", "Ana Paula e André", "Beatriz e Bernardo", "Brenda Souza", "Bruna e Leonardo", "Bárbara Feitosa Kumon", "Camila Gomes", "Carmen e José", "Christiane e Lucas", "Condomínio Edifício Arantes", "Condomínio Edifício Maria Flávia", "Cynthia e Ramon", "Daniela e Daniel", "Daniela e Guilherme", "Danielle e Marcelo", "Edifício Antares", "Edifício Maria Flávia", "Edifício Mônica Salles", "Edifício Riviera", "Edifício Teófilo de Melo", "Eduardo e Terezinha", "Elaine Fernandes", "Flora e Bruno", "Fábio Barreto", "Fátima", "Fátima e Ricardo", "Humberto e Regina", "Iara e Guilherme", "Isabela e Rafael", "Isabella e Humberto", "Joana e Rafael", "Juliana e Daniel", "Juliana e Máximo", "Junia e Neusa", "Kamylla e Felipe", "Kellen", "Kelly e José Carlos", "Letícia e Marcelo", "Logás", "Logás Sede Unicenter", "Lorena Lustosa", "Luana Cordeiro", "Luciana Moreira", "Maisa e Wander", "Manuela e Arthur", "Marcinha e Eduardo", "Maria Silvia Gonzaga", "Mariana e Gustavo", "Marilene Carneiro", "Marina e Daniel", "Marina e Marcelo", "Marina e Rodrigo", "Paula e Rodrigo", "Pedro Bartolomeu Mesa", "Pedro e Aline", "Pedro e Chris", "Pedro e Iara", "Renata e Rafael", "Shirley Emerick", "Sítio Pequeno Bosque", "Terezinha Magalhães", "Thiago Portes", "Tânia Carvalho", "Vanessa e Mario Pedro"];
@@ -1757,9 +1756,13 @@ function doLogout(){
   fbAuth.signOut();
 }
 function mergeFirebaseData(fdata){
-  dados=DADOS_BASE.slice();
-  if(fdata&&fdata.dados&&fdata.dados.length){
-    dados=dados.concat(fdata.dados);
+  if(fdata&&fdata.migrated){
+    // Firebase é a fonte da verdade: usa diretamente, sem misturar DADOS_BASE
+    dados=fdata.dados||[];
+  } else {
+    // Modo legado (primeira carga ou sem migração): DADOS_BASE + registros novos
+    dados=DADOS_BASE.slice();
+    if(fdata&&fdata.dados&&fdata.dados.length){dados=dados.concat(fdata.dados);}
   }
   if(fdata&&fdata.config){
     var c=fdata.config;
@@ -1770,10 +1773,10 @@ function mergeFirebaseData(fdata){
     if(c.ORIGENS_ENTRADA)c.ORIGENS_ENTRADA.forEach(function(v){if(ORIGENS_ENTRADA.indexOf(v)<0)ORIGENS_ENTRADA.push(v);});
     if(c.ORIGENS_SAIDA)c.ORIGENS_SAIDA.forEach(function(v){if(ORIGENS_SAIDA.indexOf(v)<0)ORIGENS_SAIDA.push(v);});
   }
-  // migrate: rename Honorário → Cliente in ORIGENS_ENTRADA
+  // migração: renomear Honorário → Cliente
   var honIdx=ORIGENS_ENTRADA.indexOf('Honorário');
   if(honIdx>=0){if(ORIGENS_ENTRADA.indexOf('Cliente')<0)ORIGENS_ENTRADA[honIdx]='Cliente';else ORIGENS_ENTRADA.splice(honIdx,1);}
-  // migrate: set defaults for pago/nf_emitida
+  // migração: defaults para pago/nf_emitida em registros históricos
   dados.forEach(function(r){if(r.pago===undefined)r.pago=true;if(r.nf_emitida===undefined)r.nf_emitida=true;});
 }
 
@@ -1807,13 +1810,15 @@ fbAuth.onAuthStateChanged(function(user){
         fbReady=true;
         init();
       }else{
-        // Re-render active page
+        // Re-render active page (desktop)
         var act=document.querySelector('.page.act');
         var pid=act?act.id:'';
         if(pid==='p-dash')rendDash();
         else if(pid==='p-hist')rendHist();
         else if(pid==='p-alertas')rendAlertas();
         else rendAll();
+        // Re-render mobile view (always, pois pode estar visível)
+        rendMob();
       }
     },function(err){
       console.error('Firebase sync error:',err);
