@@ -1575,10 +1575,19 @@ function rendMobDash(){
   mv.querySelectorAll('.edit-mob').forEach(function(b){b.addEventListener('click',function(){openEdit(parseInt(this.dataset.ri));});});
   mv.querySelectorAll('.del-mob').forEach(function(b){b.addEventListener('click',function(){var ri=parseInt(this.dataset.ri);if(confirm('Excluir?')){dados.splice(ri,1);salvarLocal();rendAll();}});});
 }
+function setMobHFutFilt(v){hFutFilt=(hFutFilt===v)?'':v;rendMobHist();}
 function rendMobHist(){
   var mv=R('mob-view');if(!mv)return;
   var filt=getHFilt().slice(0,100);
-  var html='<div style="font-size:10px;font-weight:700;letter-spacing:.6px;color:#888;margin-bottom:10px">HISTÓRICO (100 mais recentes)</div>';
+  var bStyle='padding:7px 14px;border-radius:18px;border:1.5px solid;font-size:12px;font-weight:700;cursor:pointer;';
+  var bR=hFutFilt==='receber'?bStyle+'background:#1a1a1a;color:#fff;border-color:#1a1a1a':bStyle+'background:#fff;color:#666;border-color:#ddd';
+  var bP=hFutFilt==='pagar'?bStyle+'background:#1a1a1a;color:#fff;border-color:#1a1a1a':bStyle+'background:#fff;color:#666;border-color:#ddd';
+  var html='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">'
+    +'<button style="'+bR+'" onclick="setMobHFutFilt(\'receber\')">↗ A Receber</button>'
+    +'<button style="'+bP+'" onclick="setMobHFutFilt(\'pagar\')">↘ A Pagar</button>'
+    +(hFutFilt?'<button style="'+bStyle+'background:#fff;color:#888;border-color:#ddd" onclick="hFutFilt=\'\';rendMobHist()">✕ Limpar</button>':'')
+    +'</div>'
+    +'<div style="font-size:10px;font-weight:700;letter-spacing:.6px;color:#888;margin-bottom:10px">'+(hFutFilt==='receber'?'A RECEBER':hFutFilt==='pagar'?'A PAGAR':'HISTÓRICO')+' ('+filt.length+' lançamentos)</div>';
   filt.forEach(function(r){
     var isE=r['Movimentação']==='Entrada';var ri=dados.indexOf(r);
     html+='<div class="hist-item"><div class="hist-info"><div class="hist-name">'+(r.Cliente||r.Fornecedor||r.Despesa||'—')+'</div><div class="hist-sub">'+fmtDate(r.Data)+' · '+(r.Origem||r['Movimentação'])+(r.Despesa?' · '+r.Despesa:'')+'</div></div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px"><div class="hist-val '+(isE?'pos':'neg')+'" style="font-size:15px;font-weight:700">'+(isE?'+':'-')+fmt(r.Valor)+'</div><div style="display:flex;gap:2px"><button class="ic-btn edit-mob" data-ri="'+ri+'" style="font-size:13px">&#9998;</button><button class="ic-btn del-mob" data-ri="'+ri+'" style="font-size:13px;color:#c0392b">&#128465;</button></div></div></div>';
