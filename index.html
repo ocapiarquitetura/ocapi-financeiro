@@ -361,17 +361,17 @@ tr.row-pago td{opacity:.75}
         <div id="ch-res-div"></div>
         <div class="chart-leg" id="leg-res"></div>
       </div>
-      <div class="chart-card" style="display:flex;flex-direction:column">
-        <div class="chart-title">Entradas: Clientes vs RT</div>
-        <div id="ch-pizza-div" style="flex:1;display:flex;align-items:center;justify-content:center"></div>
-        <div class="chart-leg" id="leg-pizza"></div>
-      </div>
-    </div>
-    <div class="chart-row">
       <div class="chart-card">
         <div class="chart-title">Fluxo de Caixa Acumulado 2026</div>
         <div id="ch-fluxo-div"></div>
         <div class="chart-leg" id="leg-fluxo"></div>
+      </div>
+    </div>
+    <div class="chart-row">
+      <div class="chart-card" style="display:flex;flex-direction:column">
+        <div class="chart-title">Entradas: Clientes vs RT</div>
+        <div id="ch-pizza-div" style="flex:1;display:flex;align-items:center;justify-content:center"></div>
+        <div class="chart-leg" id="leg-pizza"></div>
       </div>
       <div class="chart-card" style="display:flex;flex-direction:column">
         <div class="chart-title">Despesas por Categoria</div>
@@ -1273,8 +1273,8 @@ function rendChart(divId,legId,mov,dd){
   var W=600,H=200,PL=65,PR=15,PT=12,PB=35,cW=W-PL-PR,cH=H-PT-PB;
   var src=dd||getDashData();
   var years=[2024,2025,2026];
-  var colorsE={'2024':'#aaa','2025':'#666','2026':'#27ae60'};
-  var colorsS={'2024':'#f0aba0','2025':'#e07060','2026':'#c0392b'};
+  var colorsE={'2024':'#74b9ff','2025':'#fdcb6e','2026':'#00b894'};
+  var colorsS={'2024':'#74b9ff','2025':'#fdcb6e','2026':'#d63031'};
   var colors=mov==='Entrada'?colorsE:colorsS;
   var series={};
   years.forEach(function(y){
