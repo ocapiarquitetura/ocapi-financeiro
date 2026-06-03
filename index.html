@@ -296,6 +296,10 @@ tr.row-pago td{opacity:.75}
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
         <span class="sb-link-label">Alertas</span>
       </a>
+      <a class="sb-link" onclick="showPage('p-importar',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        <span class="sb-link-label">Importar Extrato</span>
+      </a>
       <a class="sb-link" onclick="showPage('p-admin',this)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 1 0-16 0"/></svg>
         <span class="sb-link-label">Admin</span>
@@ -639,6 +643,76 @@ tr.row-pago td{opacity:.75}
         <p style="font-size:13px;color:#999">Pendências que precisam da sua atenção</p>
       </div>
       <div id="alerta-body"></div>
+    </div>
+  </div>
+
+  <!-- IMPORTAR EXTRATO -->
+  <div id="p-importar" class="page">
+    <div style="max-width:900px;margin:0 auto;width:100%">
+      <div style="margin-bottom:24px">
+        <h2 style="font-size:22px;font-weight:800;color:#1a1a1a;margin-bottom:4px">📥 Importar Extrato</h2>
+        <p style="font-size:13px;color:#999">Faça upload do PDF do extrato bancário. O sistema sugere a classificação automaticamente.</p>
+      </div>
+      <!-- STEP 1: Upload -->
+      <div id="imp-step1">
+        <div id="imp-dropzone" onclick="document.getElementById('imp-file-input').click()" style="border:2px dashed #ddd;border-radius:16px;padding:48px 24px;text-align:center;cursor:pointer;background:#fafafa;transition:all .2s">
+          <div style="font-size:40px;margin-bottom:12px">📄</div>
+          <div style="font-size:15px;font-weight:700;color:#1a1a1a;margin-bottom:6px">Clique para selecionar o PDF</div>
+          <div style="font-size:12px;color:#aaa">Extrato Banco Inter (PDF) — Jan a Jun 2026</div>
+          <input type="file" id="imp-file-input" accept=".pdf" style="display:none" onchange="impCarregarPDF(this)">
+        </div>
+        <div id="imp-loading" style="display:none;text-align:center;padding:40px;color:#888;font-size:14px">
+          <div style="font-size:32px;margin-bottom:12px">⏳</div>
+          Lendo PDF e extraindo transações...
+        </div>
+        <div style="margin-top:16px;background:#f0f8ff;border:1.5px solid #bee3f8;border-radius:12px;padding:14px 16px;font-size:12px;color:#2980b9">
+          💡 <strong>Dica:</strong> O sistema aprende com suas aprovações. Quanto mais você usar, mais preciso fica.
+        </div>
+      </div>
+      <!-- STEP 2: Review -->
+      <div id="imp-step2" style="display:none">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap">
+          <button onclick="impVoltarStep1()" style="border:1.5px solid #ddd;background:#fff;border-radius:9px;padding:7px 14px;font-size:13px;cursor:pointer">← Novo extrato</button>
+          <div style="flex:1">
+            <div id="imp-resumo" style="font-size:13px;color:#666"></div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button onclick="impFiltrar('todos')" id="imp-f-todos" class="btn btn-dark btn-sm">Todos</button>
+            <button onclick="impFiltrar('?')" id="imp-f-pend" class="btn btn-out btn-sm">⚠️ Pendentes</button>
+            <button onclick="impFiltrar('Empresa')" id="imp-f-emp" class="btn btn-out btn-sm">✅ Empresa</button>
+            <button onclick="impFiltrar('Pessoal')" id="imp-f-pes" class="btn btn-out btn-sm">❌ Pessoal</button>
+          </div>
+        </div>
+        <!-- Stats bar -->
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px" id="imp-stats"></div>
+        <!-- Search -->
+        <div style="margin-bottom:16px">
+          <input id="imp-search" type="search" placeholder="🔍 Buscar lançamento..." oninput="impRenderLista()" style="width:100%;border:1.5px solid #ddd;border-radius:10px;padding:9px 14px;font-size:13px;outline:none">
+        </div>
+        <!-- List -->
+        <div id="imp-lista"></div>
+        <!-- Bottom action bar -->
+        <div style="position:sticky;bottom:20px;background:#1a1a1a;color:#fff;border-radius:16px;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;margin-top:20px;box-shadow:0 4px 24px rgba(0,0,0,.3)">
+          <div>
+            <div style="font-size:16px;font-weight:800" id="imp-count-bar">0 para importar</div>
+            <div style="font-size:12px;color:#aaa" id="imp-val-bar">R$ 0,00</div>
+          </div>
+          <div style="display:flex;gap:10px">
+            <button onclick="impAprovarTodos()" style="background:#2980b9;color:#fff;border:none;border-radius:10px;padding:10px 18px;font-size:13px;font-weight:700;cursor:pointer">✅ Aprovar todos Empresa</button>
+            <button onclick="impConfirmarImport()" style="background:#27ae60;color:#fff;border:none;border-radius:10px;padding:10px 22px;font-size:14px;font-weight:800;cursor:pointer">⬇ Importar para o sistema</button>
+          </div>
+        </div>
+      </div>
+      <!-- STEP 3: Done -->
+      <div id="imp-step3" style="display:none;text-align:center;padding:60px 20px">
+        <div style="font-size:56px;margin-bottom:16px">✅</div>
+        <h3 style="font-size:20px;font-weight:800;margin-bottom:8px" id="imp-done-title">Importação concluída!</h3>
+        <p style="color:#888;font-size:14px;margin-bottom:28px" id="imp-done-sub"></p>
+        <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+          <button onclick="impVoltarStep1()" style="border:1.5px solid #ddd;background:#fff;border-radius:10px;padding:11px 22px;font-size:14px;font-weight:600;cursor:pointer">📥 Novo extrato</button>
+          <button onclick="showPage('p-hist',document.querySelector(\'[onclick*=p-hist]\'))" style="background:#1a1a1a;color:#fff;border:none;border-radius:10px;padding:11px 22px;font-size:14px;font-weight:700;cursor:pointer">Ver em Controle →</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -1849,6 +1923,7 @@ function showPage(pid,el){
   R(pid).classList.add('act');el.classList.add('act');
   if(pid==='p-dash')rendDash();if(pid==='p-hist')rendHist();
   if(pid==='p-alertas')rendAlertas();if(pid==='p-admin')rendAdmin();
+  if(pid==='p-importar')impInitPage();
 }
 function toggleSidebar(){
   var sb=document.getElementById('sidebar');
@@ -2198,6 +2273,379 @@ fbAuth.onAuthStateChanged(function(user){
   }
 });
 
+
+// ============================================================
+// IMPORTAR EXTRATO — Motor completo
+// ============================================================
+var impTxs = [];       // transações extraídas do PDF
+var impFiltroAtual = 'todos';
+var impRegras = [];    // regras aprendidas (salvas no Firebase)
+
+// Padrões fixos conhecidos
+var IMP_REGRAS_FIXAS = [
+  {pattern:'OCAPI ARQUITETURA', classificacao:'Empresa', origem:'RT', tipo:'Entrada'},
+  {pattern:'PBTECH', classificacao:'Empresa', origem:'RT', tipo:'Entrada'},
+  {pattern:'LUDI MOVEIS', classificacao:'Empresa', origem:'Cliente', tipo:'Entrada'},
+  {pattern:'LARACON', classificacao:'Empresa', origem:'Cliente', tipo:'Entrada'},
+  {pattern:'GABRIEL ROCHA', classificacao:'Pessoal', origem:'', tipo:null},
+  {pattern:'TELEFONICA', classificacao:'Pessoal', origem:'', tipo:null},
+  {pattern:'FATURA CARTAO', classificacao:'Pessoal', origem:'', tipo:null},
+  {pattern:'NOTORIUM CERTIFICADORA', classificacao:'Pessoal', origem:'', tipo:null},
+  {pattern:'MARINA ALBAREZ', classificacao:'Empresa', origem:'RT', tipo:'Saída'},
+  {pattern:'DANCA', classificacao:'Pessoal', origem:'', tipo:null},
+  {pattern:'ATO CENTRO', classificacao:'Pessoal', origem:'', tipo:null}
+];
+
+function impInitPage(){
+  // Carregar regras aprendidas do Firebase
+  if(fbDb && fbAuth && fbAuth.currentUser){
+    fbDb.collection('ocapi').doc('regras_import').get().then(function(doc){
+      if(doc.exists) impRegras = doc.data().regras || [];
+    }).catch(function(){});
+  }
+}
+
+function impCarregarPDF(input){
+  var file = input.files[0];
+  if(!file) return;
+  R('imp-dropzone').style.display='none';
+  R('imp-loading').style.display='block';
+
+  // Load PDF.js dynamically
+  if(!window.pdfjsLib){
+    var s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+    s.onload = function(){
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      impLerPDF(file);
+    };
+    document.head.appendChild(s);
+  } else {
+    impLerPDF(file);
+  }
+}
+
+function impLerPDF(file){
+  var reader = new FileReader();
+  reader.onload = function(e){
+    var typedarray = new Uint8Array(e.target.result);
+    pdfjsLib.getDocument(typedarray).promise.then(function(pdf){
+      var textoTotal = '';
+      var paginas = [];
+      for(var i=1;i<=pdf.numPages;i++) paginas.push(i);
+      var done = 0;
+      var pageTexts = {};
+      paginas.forEach(function(n){
+        pdf.getPage(n).then(function(page){
+          page.getTextContent().then(function(content){
+            pageTexts[n] = content.items.map(function(i){return i.str;}).join(' ');
+            done++;
+            if(done===paginas.length){
+              for(var k=1;k<=paginas.length;k++) textoTotal += pageTexts[k]+'\n';
+              impExtrairTransacoes(textoTotal);
+            }
+          });
+        });
+      });
+    }).catch(function(err){
+      R('imp-loading').innerHTML='<div style="color:#c0392b">Erro ao ler PDF: '+err.message+'</div>';
+    });
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function impExtrairTransacoes(texto){
+  var txs = [];
+  var meses = {Janeiro:'01',Fevereiro:'02','Março':'03',Abril:'04',Maio:'05',Junho:'06',
+               Julho:'07',Agosto:'08',Setembro:'09',Outubro:'10',Novembro:'11',Dezembro:'12'};
+  var currentDate = '';
+
+  // Normalize: collapse multiple spaces
+  var linhas = texto.replace(/\s{2,}/g,' ').split('\n');
+
+  linhas.forEach(function(linha){
+    linha = linha.trim();
+    // Date header: "3 de Janeiro de 2026"
+    var dm = linha.match(/(\d{1,2}) de ([A-Za-záéíóúãõç]+) de (\d{4})/);
+    if(dm){
+      var mes = meses[dm[2]] || '00';
+      currentDate = dm[3]+'-'+mes+'-'+dm[1].padStart(2,'0');
+      return;
+    }
+    if(!currentDate) return;
+
+    // Transaction pattern: "TYPE: description VALUE SALDO"
+    // VALUE can be -R$ or R$ followed by numbers
+    var m = linha.match(/^([\w\s]+):\s+"?(.+?)"?\s+(-?R\$\s*[\d\.,]+)\s+(-?R\$\s*[\d\.,]+)\s*$/);
+    if(!m) return;
+
+    var txType = m[1].trim();
+    var desc = m[2].trim();
+    var valStr = m[3].replace(/R\$\s*/,'').replace(/\./g,'').replace(',','.');
+    var val = parseFloat(valStr);
+    if(isNaN(val)) return;
+    if(txType.includes('Saldo') || txType.includes('SAC')) return;
+
+    var tipo = val >= 0 ? 'Entrada' : 'Saída';
+    var descLimpa = desc.replace(/^(Cp\s*:\d+[-\s]*|00019\s*\d+\s*)/,'').trim();
+
+    txs.push({
+      data: currentDate,
+      descricao: descLimpa,
+      descOriginal: desc,
+      valor: Math.abs(val),
+      tipo: tipo,
+      txType: txType,
+      classificacao: '?',
+      origem: '',
+      origemSugerida: '',
+      confianca: 0
+    });
+  });
+
+  if(!txs.length){
+    R('imp-loading').innerHTML='<div style="color:#c0392b;padding:20px">Não foi possível extrair transações. Verifique se o PDF é do Banco Inter.</div>';
+    return;
+  }
+
+  impTxs = txs;
+  impAplicarSugestoes();
+  impDeduplicar();
+  R('imp-loading').style.display='none';
+  R('imp-step1').style.display='none';
+  R('imp-step2').style.display='block';
+  impRenderLista();
+}
+
+function impAplicarSugestoes(){
+  var todasRegras = IMP_REGRAS_FIXAS.concat(impRegras);
+  impTxs.forEach(function(tx){
+    var descUp = (tx.descricao+' '+tx.descOriginal).toUpperCase();
+
+    // 1. Regras (fixas + aprendidas)
+    var match = null;
+    var melhorConfianca = 0;
+    todasRegras.forEach(function(r){
+      if(descUp.indexOf(r.pattern.toUpperCase())>=0){
+        var conf = r.aprendida ? 95 : 85;
+        if(conf > melhorConfianca){
+          melhorConfianca = conf;
+          match = r;
+        }
+      }
+    });
+
+    // 2. Verificar no histórico do sistema
+    var histMatch = dados.filter(function(d){
+      var dDesc = (d.Descrição||d.Cliente||d.Despesa||'').toUpperCase();
+      return dDesc && dDesc.length>3 && descUp.indexOf(dDesc)>=0;
+    });
+    if(histMatch.length > 0){
+      var h = histMatch[histMatch.length-1];
+      if(!match || 98 > melhorConfianca){
+        match = {
+          classificacao:'Empresa',
+          origem: h.Origem||'',
+          tipo: h['Movimentação']||tx.tipo
+        };
+        melhorConfianca = 98;
+      }
+    }
+
+    if(match){
+      tx.classificacao = match.classificacao;
+      tx.origemSugerida = match.origem || '';
+      tx.confianca = melhorConfianca;
+      if(match.tipo && match.tipo !== tx.tipo) tx.tipo = match.tipo;
+    }
+
+    // 3. Sugerir origem padrão
+    if(tx.classificacao==='Empresa' && !tx.origemSugerida){
+      tx.origemSugerida = tx.tipo==='Entrada' ? 'Cliente' : '';
+    }
+    tx.origem = tx.origemSugerida;
+  });
+}
+
+function impDeduplicar(){
+  impTxs.forEach(function(tx){
+    var dup = dados.some(function(d){
+      return d.Data === tx.data.split('-').reverse().join('/') &&
+             Math.abs((parseFloat(d.Valor)||0) - tx.valor) < 0.01;
+    });
+    if(dup){
+      tx.duplicata = true;
+      tx.classificacao = 'Ignorar';
+    }
+  });
+}
+
+function impClassificar(i, val){
+  impTxs[i].classificacao = val;
+  impRenderLista();
+  impSalvarRegra(impTxs[i], val);
+}
+
+function impSetOrigem(i, val){
+  impTxs[i].origem = val;
+}
+
+function impSalvarRegra(tx, classificacao){
+  if(!tx.descricao || tx.descricao.length < 3) return;
+  var padrao = tx.descricao.toUpperCase().substring(0,30);
+  var existe = impRegras.some(function(r){ return r.pattern===padrao; });
+  if(!existe && (classificacao==='Empresa'||classificacao==='Pessoal')){
+    impRegras.push({pattern:padrao, classificacao:classificacao, origem:tx.origem||'', aprendida:true});
+    if(fbDb && fbAuth && fbAuth.currentUser){
+      fbDb.collection('ocapi').doc('regras_import').set({regras:impRegras}).catch(function(){});
+    }
+  }
+}
+
+function impFiltrar(f){
+  impFiltroAtual = f;
+  ['todos','pend','emp','pes'].forEach(function(k){ var b=R('imp-f-'+k); if(b){b.className='btn btn-out btn-sm';} });
+  var map={todos:'todos',pend:'?','Empresa':'emp','Pessoal':'pes'};
+  var btnId = 'imp-f-'+(map[f]||f);
+  if(R(btnId)) R(btnId).className='btn btn-dark btn-sm';
+  impRenderLista();
+}
+
+function impGetFiltrado(){
+  var q = (R('imp-search')?R('imp-search').value||'':'').toLowerCase();
+  return impTxs.map(function(t,i){return {t:t,i:i};}).filter(function(o){
+    var t=o.t;
+    if(impFiltroAtual==='?' && t.classificacao!=='?') return false;
+    if(impFiltroAtual==='Empresa' && t.classificacao!=='Empresa') return false;
+    if(impFiltroAtual==='Pessoal' && t.classificacao!=='Pessoal') return false;
+    if(q && !t.descricao.toLowerCase().includes(q) && !String(t.valor).includes(q)) return false;
+    return true;
+  });
+}
+
+function impRenderLista(){
+  var filtrado = impGetFiltrado();
+  var empresa = impTxs.filter(function(t){return t.classificacao==='Empresa';});
+  var pendente = impTxs.filter(function(t){return t.classificacao==='?';});
+  var totalValEmpresa = empresa.reduce(function(a,t){return a+(t.tipo==='Entrada'?t.valor:-t.valor);},0);
+
+  // Stats
+  var statsEl = R('imp-stats');
+  if(statsEl) statsEl.innerHTML = [
+    {l:'Total',v:impTxs.length,c:'#f0f0f0',tc:'#333'},
+    {l:'✅ Empresa',v:empresa.length,c:'#e8f8f0',tc:'#27ae60'},
+    {l:'⚠️ Pendentes',v:pendente.length,c:'#fff8e6',tc:'#e67e22'},
+    {l:'🔁 Duplicatas',v:impTxs.filter(function(t){return t.duplicata;}).length,c:'#f5f5f5',tc:'#999'}
+  ].map(function(s){
+    return '<div style="background:'+s.c+';border-radius:10px;padding:12px;text-align:center">'
+      +'<div style="font-size:20px;font-weight:800;color:'+s.tc+'">'+s.v+'</div>'
+      +'<div style="font-size:11px;color:#888;margin-top:2px">'+s.l+'</div>'
+    +'</div>';
+  }).join('');
+
+  // Resumo
+  var resEl = R('imp-resumo');
+  if(resEl) resEl.textContent = impTxs.length+' transações extraídas · '+pendente.length+' pendentes de classificação';
+
+  // Bottom bar
+  if(R('imp-count-bar')) R('imp-count-bar').textContent = empresa.length+' lançamentos para importar';
+  if(R('imp-val-bar')) R('imp-val-bar').textContent = fmt(totalValEmpresa)+' líquido';
+
+  var lista = R('imp-lista');
+  if(!lista) return;
+  if(!filtrado.length){lista.innerHTML='<div style="text-align:center;padding:40px;color:#bbb">Nenhum lançamento encontrado</div>';return;}
+
+  var origens = ORIGENS_ENTRADA.concat(ORIGENS_SAIDA);
+  lista.innerHTML = filtrado.map(function(o){
+    var t=o.t, i=o.i;
+    var dataFmt = t.data.split('-').reverse().join('/');
+    var isEmp = t.classificacao==='Empresa';
+    var isPes = t.classificacao==='Pessoal';
+    var isIgn = t.classificacao==='Ignorar' || t.duplicata;
+    var isPend = t.classificacao==='?';
+    var borderClr = isEmp?'#27ae60':isPes?'#e74c3c':isIgn?'#ddd':'#f39c12';
+    var badge = t.confianca>0 ? '<span style="font-size:10px;background:#e8f0ff;color:#2980b9;border-radius:5px;padding:1px 6px;margin-left:6px">'+t.confianca+'% confiança</span>' : '';
+    var dupBadge = t.duplicata ? '<span style="font-size:10px;background:#f5f5f5;color:#999;border-radius:5px;padding:1px 6px;margin-left:6px">🔁 já existe</span>' : '';
+    var origOpts = origens.map(function(o){return '<option value="'+o+'"'+(t.origem===o?' selected':'')+'>'+o+'</option>';}).join('');
+
+    return '<div style="background:#fff;border:1.5px solid '+borderClr+';border-radius:12px;margin-bottom:10px;overflow:hidden;opacity:'+(isIgn?.5:1)+'">'
+      +'<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px 6px">'
+        +'<span style="font-size:11px;color:#999;font-weight:600">'+dataFmt+'</span>'
+        +'<div style="display:flex;align-items:center;gap:6px">'
+          +badge+dupBadge
+          +'<span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;background:'+(t.tipo==='Entrada'?'#e8f8f0':'#fde8e8')+';color:'+(t.tipo==='Entrada'?'#27ae60':'#c0392b')+'">'+t.tipo+'</span>'
+        +'</div>'
+      +'</div>'
+      +'<div style="padding:0 14px 4px;font-size:13px;font-weight:700">'+t.descricao+'</div>'
+      +'<div style="padding:0 14px 8px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">'
+        +'<span style="font-size:16px;font-weight:800;color:'+(t.tipo==='Entrada'?'#27ae60':'#c0392b')+'">'+fmt(t.valor)+'</span>'
+        +(isEmp ? '<select onchange="impSetOrigem('+i+',this.value)" style="border:1.5px solid #ddd;border-radius:7px;padding:4px 8px;font-size:12px;background:#f9f9f9"><option value="">Origem...</option>'+origOpts+'</select>' : '')
+      +'</div>'
+      +'<div style="display:flex;border-top:1px solid #f0f0f0">'
+        +'<button onclick="impClassificar('+i+',\'Empresa\')" style="flex:1;border:none;padding:10px;font-size:12px;font-weight:700;cursor:pointer;background:'+(isEmp?'#e8f8f0':'#fafafa')+';color:'+(isEmp?'#27ae60':'#888')+'">✅ Empresa</button>'
+        +'<button onclick="impClassificar('+i+',\'Pessoal\')" style="flex:1;border:none;border-left:1px solid #f0f0f0;padding:10px;font-size:12px;font-weight:700;cursor:pointer;background:'+(isPes?'#fde8e8':'#fafafa')+';color:'+(isPes?'#c0392b':'#888')+'">❌ Pessoal</button>'
+        +'<button onclick="impClassificar('+i+',\'Ignorar\')" style="flex:1;border:none;border-left:1px solid #f0f0f0;padding:10px;font-size:12px;font-weight:700;cursor:pointer;background:'+(isIgn?'#f0f0f0':'#fafafa')+';color:'+(isIgn?'#666':'#bbb')+'">— Ignorar</button>'
+      +'</div>'
+    +'</div>';
+  }).join('');
+}
+
+function impAprovarTodos(){
+  impGetFiltrado().forEach(function(o){
+    if(o.t.classificacao==='?') o.t.classificacao='Empresa';
+  });
+  impRenderLista();
+}
+
+function impConfirmarImport(){
+  var empresa = impTxs.filter(function(t){return t.classificacao==='Empresa';});
+  if(!empresa.length){ showToast('Nenhum lançamento marcado como Empresa','#e67e22'); return; }
+  var pendentes = impTxs.filter(function(t){return t.classificacao==='?';}).length;
+  if(pendentes > 0){
+    if(!confirm(pendentes+' lançamentos ainda pendentes de classificação. Importar só os marcados como Empresa?')) return;
+  }
+
+  var importados = 0, duplicados = 0;
+  empresa.forEach(function(tx){
+    var dataFmt = tx.data.split('-').reverse().join('/');
+    // Check duplicate by date+valor
+    var dup = dados.some(function(d){ return d.Data===dataFmt && Math.abs((parseFloat(d.Valor)||0)-tx.valor)<0.01; });
+    if(dup){ duplicados++; return; }
+
+    var ano = parseInt(tx.data.split('-')[0]);
+    var mes = parseInt(tx.data.split('-')[1]);
+    var novo = {
+      Data: dataFmt, Ano: ano, Mês: mes,
+      Descrição: tx.descricao,
+      Valor: String(tx.valor).replace('.',','),
+      Movimentação: tx.tipo,
+      Origem: tx.origem || (tx.tipo==='Entrada'?'Cliente':''),
+      pago: true, nf_emitida: false,
+      _ts: Date.now(),
+      fonte_import: 'Extrato Banco Inter'
+    };
+    dados.push(novo);
+    importados++;
+  });
+
+  salvarLocal();
+  R('imp-step2').style.display='none';
+  R('imp-step3').style.display='block';
+  R('imp-done-title').textContent = importados+' lançamentos importados com sucesso!';
+  R('imp-done-sub').textContent = (duplicados>0 ? duplicados+' duplicatas ignoradas. ' : '')+'Todos disponíveis em Controle.';
+  showToast('✅ '+importados+' lançamentos importados!','#27ae60',4000);
+}
+
+function impVoltarStep1(){
+  impTxs = [];
+  R('imp-step2').style.display='none';
+  R('imp-step3').style.display='none';
+  R('imp-step1').style.display='block';
+  R('imp-dropzone').style.display='block';
+  R('imp-loading').style.display='none';
+  R('imp-loading').innerHTML='<div style="font-size:32px;margin-bottom:12px">⏳</div> Lendo PDF e extraindo transações...';
+  var inp = R('imp-file-input'); if(inp) inp.value='';
+}
 </script>
 </body>
 </html>
