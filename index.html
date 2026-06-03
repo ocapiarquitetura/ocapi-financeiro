@@ -742,8 +742,16 @@ function salvarLocal(){salvarFirebase();}
 function salvarFirebase(){
   if(!fbAuth||!fbAuth.currentUser){return;}
   var cfg={CLI_HON:CLI_HON,RT_EMPRESAS:RT_EMPRESAS,DESPESAS:DESPESAS,DESP_MAP:DESP_MAP,ORIGENS_ENTRADA:ORIGENS_ENTRADA,ORIGENS_SAIDA:ORIGENS_SAIDA};
-  fbDb.collection('ocapi').doc('app').set({dados:dados,config:cfg,migrated:true})
-    .then(function(){console.log('Salvo no Firebase ('+dados.length+' registros)');})
+  var payload={dados:dados,config:cfg,migrated:true};
+  var payloadBytes=new Blob([JSON.stringify(payload)]).size;
+  var LIMIT=1000000;
+  if(payloadBytes>LIMIT*0.9){
+    showToast('⚠️ ATENÇÃO: Os dados estão em '+Math.round(payloadBytes/1024)+'KB de 1000KB. Entre em contato com o suporte para expandir a capacidade!','#c0392b',12000);
+  } else if(payloadBytes>LIMIT*0.7){
+    showToast('⚠️ Aviso: capacidade em '+Math.round(payloadBytes/LIMIT*100)+'% ('+Math.round(payloadBytes/1024)+'KB/1000KB). Planeje expansão em breve.','#e67e22',8000);
+  }
+  fbDb.collection('ocapi').doc('app').set(payload)
+    .then(function(){console.log('Salvo no Firebase ('+dados.length+' registros, '+Math.round(payloadBytes/1024)+'KB)');})
     .catch(function(e){showToast('Erro ao salvar: '+e.message,'#c0392b');});
 }
 var CLI_HON=["Aelson e Conceição", "Aguinado e Magda", "Aguinaldo e Magda", "Amália e Emerson", "Ana Carolina Fonseca", "Ana Luiza e Eduardo", "Ana Paula e André", "Beatriz e Bernardo", "Brenda Souza", "Bruna e Leonardo", "Bárbara Feitosa Kumon", "Camila Gomes", "Carmen e José", "Christiane e Lucas", "Condomínio Edifício Arantes", "Condomínio Edifício Maria Flávia", "Cynthia e Ramon", "Daniela e Daniel", "Daniela e Guilherme", "Danielle e Marcelo", "Edifício Antares", "Edifício Maria Flávia", "Edifício Mônica Salles", "Edifício Riviera", "Edifício Teófilo de Melo", "Eduardo e Terezinha", "Elaine Fernandes", "Flora e Bruno", "Fábio Barreto", "Fátima", "Fátima e Ricardo", "Humberto e Regina", "Iara e Guilherme", "Isabela e Rafael", "Isabella e Humberto", "Joana e Rafael", "Juliana e Daniel", "Juliana e Máximo", "Junia e Neusa", "Kamylla e Felipe", "Kellen", "Kelly e José Carlos", "Letícia e Marcelo", "Logás", "Logás Sede Unicenter", "Lorena Lustosa", "Luana Cordeiro", "Luciana Moreira", "Maisa e Wander", "Manuela e Arthur", "Marcinha e Eduardo", "Maria Silvia Gonzaga", "Mariana e Gustavo", "Marilene Carneiro", "Marina e Daniel", "Marina e Marcelo", "Marina e Rodrigo", "Paula e Rodrigo", "Pedro Bartolomeu Mesa", "Pedro e Aline", "Pedro e Chris", "Pedro e Iara", "Renata e Rafael", "Shirley Emerick", "Sítio Pequeno Bosque", "Terezinha Magalhães", "Thiago Portes", "Tânia Carvalho", "Vanessa e Mario Pedro"];
@@ -816,11 +824,11 @@ function setupAC(inputId,listId,getList){
   inp.addEventListener('focus',function(){showAC(inp,list,getList);});
   document.addEventListener('click',function(e){if(!inp.contains(e.target)&&!list.contains(e.target))list.style.display='none';});
 }
-function showToast(msg){
+function showToast(msg,color,duration){
   var t=document.getElementById('sys-toast');
-  if(!t){t=document.createElement('div');t.id='sys-toast';t.style.cssText='position:fixed;bottom:28px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;padding:11px 22px;border-radius:10px;font-size:13px;font-weight:600;z-index:9999;opacity:0;transition:opacity .25s;pointer-events:none;white-space:nowrap';document.body.appendChild(t);}
-  t.textContent=msg;t.style.opacity='1';
-  clearTimeout(t._tid);t._tid=setTimeout(function(){t.style.opacity='0';},2800);
+  if(!t){t=document.createElement('div');t.id='sys-toast';t.style.cssText='position:fixed;bottom:28px;left:50%;transform:translateX(-50%);color:#fff;padding:11px 22px;border-radius:10px;font-size:13px;font-weight:600;z-index:9999;opacity:0;transition:opacity .25s;pointer-events:none;max-width:90vw;text-align:center;white-space:normal';document.body.appendChild(t);}
+  t.textContent=msg;t.style.background=color||'#1a1a1a';t.style.opacity='1';
+  clearTimeout(t._tid);t._tid=setTimeout(function(){t.style.opacity='0';},(duration||2800));
 }
 function showAC(inp,list,getList){
   var raw=inp.value.trim(),q=raw.toLowerCase(),src=getList();
