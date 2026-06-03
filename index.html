@@ -1731,9 +1731,16 @@ function toggleSelAll(checked){
   updBulkBar();
 }
 function bulkSetField(field,val){
+  var n=hSelected.size;
   hSelected.forEach(function(ri){if(dados[ri])dados[ri][field]=val;});
   salvarLocal();rendHist();updBulkBar();
-  showToast('✅ '+hSelected.size+' registro'+(hSelected.size>1?'s':'')+' atualizados','#27ae60');
+  showToast('✅ '+n+' registro'+(n>1?'s':'')+' atualizados','#27ae60');
+}
+function bulkSetBool(field,val){
+  var n=hSelected.size;
+  hSelected.forEach(function(ri){if(dados[ri])dados[ri][field]=val;});
+  salvarLocal();rendHist();updBulkBar();
+  showToast('✅ '+n+' registro'+(n>1?'s':'')+' atualizados','#27ae60');
 }
 function updBulkBar(){
   var bar=document.getElementById('h-bulk-bar');
@@ -1759,6 +1766,16 @@ function updBulkBar(){
     +'</select>'
     +'<select style="'+selStyle+'" onchange="if(this.value){bulkSetField(\'Origem\',this.value);this.value=\'\'}">'
       +'<option value="">Origem ▾</option>'+origOpts
+    +'</select>'
+    +'<select style="'+selStyle+'" onchange="if(this.value!==\'\'){bulkSetBool(\'pago\',this.value===\'1\');this.value=\'\'}">'
+      +'<option value="">Pago ▾</option>'
+      +'<option value="1">✓ Pago</option>'
+      +'<option value="0">✗ Não pago</option>'
+    +'</select>'
+    +'<select style="'+selStyle+'" onchange="if(this.value!==\'\'){bulkSetBool(\'nf_emitida\',this.value===\'1\');this.value=\'\'}">'
+      +'<option value="">NF ▾</option>'
+      +'<option value="1">✓ NF emitida</option>'
+      +'<option value="0">✗ NF não emitida</option>'
     +'</select>'
     +'<button onclick="bulkDelete()" style="'+btnStyle+'background:#c0392b;color:#fff">🗑 Excluir</button>'
     +'<button onclick="hSelected.clear();rendHist();updBulkBar();" style="'+btnStyle+'background:#333;color:#aaa">✕</button>';
