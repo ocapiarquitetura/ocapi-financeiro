@@ -2338,7 +2338,18 @@ function impLerPDF(file){
       paginas.forEach(function(n){
         pdf.getPage(n).then(function(page){
           page.getTextContent().then(function(content){
-            pageTexts[n] = content.items.map(function(i){return i.str;}).join(' ');
+            // Agrupar itens por posição Y para preservar linhas
+            var lineMap = {};
+            content.items.forEach(function(item){
+              if(item.str===undefined) return;
+              var y = Math.round(item.transform[5]);
+              if(!lineMap[y]) lineMap[y]=[];
+              lineMap[y].push({x:item.transform[4], t:item.str});
+            });
+            var ys = Object.keys(lineMap).map(Number).sort(function(a,b){return b-a;});
+            pageTexts[n] = ys.map(function(y){
+              return lineMap[y].sort(function(a,b){return a.x-b.x;}).map(function(o){return o.t;}).join(' ');
+            }).join('\n');
             done++;
             if(done===paginas.length){
               for(var k=1;k<=paginas.length;k++) textoTotal += pageTexts[k]+'\n';
@@ -2360,34 +2371,50 @@ function impExtrairTransacoes(texto){
                Julho:'07',Agosto:'08',Setembro:'09',Outubro:'10',Novembro:'11',Dezembro:'12'};
   var currentDate = '';
 
-  // Normalize: collapse multiple spaces
-  var linhas = texto.replace(/\s{2,}/g,' ').split('\n');
+  // Normalize: collapse multiple spaces within lines but keep line breaks
+  var linhas = texto.split('\n').map(function(l){return l.replace(/\s{2,}/g,' ').trim();});
+
+  // Helper: parse valor brasileiro "1.234,56" or "1234.56" → float
+  function parseBRL(s){
+    s = s.replace(/R\$\s*/,'').trim();
+    // Formato BR: ponto como milhar, vírgula como decimal
+    if(s.match(/\d+\.\d{3},\d{2}/)) return parseFloat(s.replace(/\./g,'').replace(',','.'));
+    // Só vírgula como decimal
+    if(s.match(/\d+,\d{2}/)) return parseFloat(s.replace(',','.'));
+    return parseFloat(s.replace(',','.'));
+  }
+
+  // Pattern para valor: -? opcionalmente R$ números
+  var PAT_VAL = '(-?R?\\$?\\s*[\\d\\.]+,[\\d]+)';
 
   linhas.forEach(function(linha){
     linha = linha.trim();
+    if(!linha) return;
     // Date header: "3 de Janeiro de 2026"
-    var dm = linha.match(/(\d{1,2}) de ([A-Za-záéíóúãõç]+) de (\d{4})/);
+    var dm = linha.match(/(\d{1,2})\s+de\s+([A-Za-záéíóúãõç]+)\s+de\s+(\d{4})/i);
     if(dm){
-      var mes = meses[dm[2]] || '00';
+      var mes = meses[dm[2].charAt(0).toUpperCase()+dm[2].slice(1).toLowerCase()] || '00';
       currentDate = dm[3]+'-'+mes+'-'+dm[1].padStart(2,'0');
       return;
     }
     if(!currentDate) return;
 
-    // Transaction pattern: "TYPE: description VALUE SALDO"
-    // VALUE can be -R$ or R$ followed by numbers
-    var m = linha.match(/^([\w\s]+):\s+"?(.+?)"?\s+(-?R\$\s*[\d\.,]+)\s+(-?R\$\s*[\d\.,]+)\s*$/);
+    // Tenta padrão principal: "TIPO: descrição VALOR SALDO"
+    var m = linha.match(/^([\w\sÀ-ú\/\-]+?):\s*"?(.+?)"?\s+(-?R?\$?\s*[\d\.]+,[\d]+)\s+(-?R?\$?\s*[\d\.]+,[\d]+)\s*$/i);
+    // Fallback: "TIPO: descrição VALOR" (sem saldo separado)
+    if(!m) m = linha.match(/^([\w\sÀ-ú\/\-]+?):\s*"?(.+?)"?\s+(-?R?\$?\s*[\d\.]+,[\d]+)\s*$/i);
+
     if(!m) return;
 
     var txType = m[1].trim();
     var desc = m[2].trim();
-    var valStr = m[3].replace(/R\$\s*/,'').replace(/\./g,'').replace(',','.');
-    var val = parseFloat(valStr);
-    if(isNaN(val)) return;
-    if(txType.includes('Saldo') || txType.includes('SAC')) return;
+    var valStr = m[3];
+    var val = parseBRL(valStr);
+    if(isNaN(val)||val===0) return;
+    if(/saldo|sac|extrato/i.test(txType)) return;
 
     var tipo = val >= 0 ? 'Entrada' : 'Saída';
-    var descLimpa = desc.replace(/^(Cp\s*:\d+[-\s]*|00019\s*\d+\s*)/,'').trim();
+    var descLimpa = desc.replace(/^(Cp\s*:\s*\d+[-\s]*|00019\s*\d+\s*)/i,'').trim();
 
     txs.push({
       data: currentDate,
@@ -2404,7 +2431,10 @@ function impExtrairTransacoes(texto){
   });
 
   if(!txs.length){
-    R('imp-loading').innerHTML='<div style="color:#c0392b;padding:20px">Não foi possível extrair transações. Verifique se o PDF é do Banco Inter.</div>';
+    // Debug: mostrar primeiras linhas do texto extraído
+    var linhasDebug = linhas.filter(function(l){return l.length>5;}).slice(0,30).join('<br>');
+    console.log('[Importar] Texto extraído (primeiras linhas):\n'+linhas.slice(0,50).join('\n'));
+    R('imp-loading').innerHTML='<div style="color:#c0392b;padding:20px">Não foi possível extrair transações. Verifique se o PDF é do Banco Inter.<br><br><small style="color:#888">Primeiras linhas do PDF extraído:<br>'+linhasDebug+'</small></div>';
     return;
   }
 
