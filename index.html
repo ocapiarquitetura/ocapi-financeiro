@@ -677,10 +677,7 @@ tr.row-pago td{opacity:.75}
             <div id="imp-resumo" style="font-size:13px;color:#666"></div>
           </div>
           <div style="display:flex;gap:8px">
-            <button onclick="impFiltrar('todos')" id="imp-f-todos" class="btn btn-dark btn-sm">Todos</button>
-            <button onclick="impFiltrar('?')" id="imp-f-pend" class="btn btn-out btn-sm">⚠️ Pendentes</button>
-            <button onclick="impFiltrar('Empresa')" id="imp-f-emp" class="btn btn-out btn-sm">✅ Empresa</button>
-            <button onclick="impFiltrar('Pessoal')" id="imp-f-pes" class="btn btn-out btn-sm">❌ Pessoal</button>
+            <button onclick="impAprovarTodos()" style="border:1.5px solid #2980b9;background:#fff;color:#2980b9;border-radius:9px;padding:7px 14px;font-size:13px;cursor:pointer;font-weight:600">✅ Aprovar pendentes</button>
           </div>
         </div>
         <!-- Stats bar -->
@@ -698,7 +695,6 @@ tr.row-pago td{opacity:.75}
             <div style="font-size:12px;color:#aaa" id="imp-val-bar">R$ 0,00</div>
           </div>
           <div style="display:flex;gap:10px">
-            <button onclick="impAprovarTodos()" style="background:#2980b9;color:#fff;border:none;border-radius:10px;padding:10px 18px;font-size:13px;font-weight:700;cursor:pointer">✅ Aprovar todos Empresa</button>
             <button onclick="impConfirmarImport()" style="background:#27ae60;color:#fff;border:none;border-radius:10px;padding:10px 22px;font-size:14px;font-weight:800;cursor:pointer">⬇ Importar para o sistema</button>
           </div>
         </div>
@@ -2559,15 +2555,18 @@ function impRenderLista(){
   var pendente = impTxs.filter(function(t){return t.classificacao==='?';});
   var totalValEmpresa = empresa.reduce(function(a,t){return a+(t.tipo==='Entrada'?t.valor:-t.valor);},0);
 
-  // Stats
+  // Stats — KPI cards clicáveis como filtro
+  var pessoal = impTxs.filter(function(t){return t.classificacao==='Pessoal';});
+  var dupls = impTxs.filter(function(t){return t.duplicata;});
   var statsEl = R('imp-stats');
   if(statsEl) statsEl.innerHTML = [
-    {l:'Total',v:impTxs.length,c:'#f0f0f0',tc:'#333'},
-    {l:'✅ Empresa',v:empresa.length,c:'#e8f8f0',tc:'#27ae60'},
-    {l:'⚠️ Pendentes',v:pendente.length,c:'#fff8e6',tc:'#e67e22'},
-    {l:'🔁 Duplicatas',v:impTxs.filter(function(t){return t.duplicata;}).length,c:'#f5f5f5',tc:'#999'}
+    {f:'todos',  l:'Total',         v:impTxs.length,  c:'#f0f0f0', tc:'#333',    bc:'#ccc'},
+    {f:'Empresa',l:'✅ Empresa',     v:empresa.length, c:'#e8f8f0', tc:'#27ae60', bc:'#27ae60'},
+    {f:'Pessoal',l:'🏠 Pessoal',    v:pessoal.length, c:'#fdecea', tc:'#e74c3c', bc:'#e74c3c'},
+    {f:'?',      l:'⚠️ Pendente',   v:pendente.length,c:'#fff8e6', tc:'#e67e22', bc:'#e67e22'},
   ].map(function(s){
-    return '<div style="background:'+s.c+';border-radius:10px;padding:12px;text-align:center">'
+    var ativo = impFiltroAtual===s.f;
+    return '<div onclick="impFiltrar(\''+s.f+'\')" style="cursor:pointer;background:'+s.c+';border-radius:10px;padding:12px;text-align:center;border:2px solid '+(ativo?s.bc:'transparent')+';box-shadow:'+(ativo?'0 0 0 2px '+s.bc+'33':'none')+';transition:all .15s">'
       +'<div style="font-size:20px;font-weight:800;color:'+s.tc+'">'+s.v+'</div>'
       +'<div style="font-size:11px;color:#888;margin-top:2px">'+s.l+'</div>'
     +'</div>';
@@ -2585,39 +2584,92 @@ function impRenderLista(){
   if(!lista) return;
   if(!filtrado.length){lista.innerHTML='<div style="text-align:center;padding:40px;color:#bbb">Nenhum lançamento encontrado</div>';return;}
 
-  var origens = ORIGENS_ENTRADA.concat(ORIGENS_SAIDA);
-  lista.innerHTML = filtrado.map(function(o){
+  var sel = function(opts,cur,attr){return '<select '+attr+'>'+opts.map(function(o){return '<option value="'+o+'"'+(o===cur?' selected':'')+'>'+o+'</option>';}).join('')+'</select>';};
+  var inp = function(val,attr){return '<input type="text" value="'+val+'" '+attr+'>';};
+  var chk = function(checked,attr){return '<input type="checkbox"'+(checked?' checked':'')+' '+attr+'>';};
+
+  var ST = 'style="border:1px solid #e0e0e0;border-radius:6px;padding:3px 6px;font-size:11px;width:100%;background:#fafafa;color:#333"';
+  var TH = function(l){return '<th style="padding:8px 10px;font-size:11px;font-weight:700;color:#666;white-space:nowrap;border-bottom:2px solid #eee;text-align:left">'+l+'</th>';};
+
+  var rows = filtrado.map(function(o){
     var t=o.t, i=o.i;
-    var dataFmt = t.data.split('-').reverse().join('/');
     var isEmp = t.classificacao==='Empresa';
     var isPes = t.classificacao==='Pessoal';
     var isIgn = t.classificacao==='Ignorar' || t.duplicata;
     var isPend = t.classificacao==='?';
-    var borderClr = isEmp?'#27ae60':isPes?'#e74c3c':isIgn?'#ddd':'#f39c12';
-    var badge = t.confianca>0 ? '<span style="font-size:10px;background:#e8f0ff;color:#2980b9;border-radius:5px;padding:1px 6px;margin-left:6px">'+t.confianca+'% confiança</span>' : '';
-    var dupBadge = t.duplicata ? '<span style="font-size:10px;background:#f5f5f5;color:#999;border-radius:5px;padding:1px 6px;margin-left:6px">🔁 já existe</span>' : '';
-    var origOpts = origens.map(function(o){return '<option value="'+o+'"'+(t.origem===o?' selected':'')+'>'+o+'</option>';}).join('');
 
-    return '<div style="background:#fff;border:1.5px solid '+borderClr+';border-radius:12px;margin-bottom:10px;overflow:hidden;opacity:'+(isIgn?.5:1)+'">'
-      +'<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px 6px">'
-        +'<span style="font-size:11px;color:#999;font-weight:600">'+dataFmt+'</span>'
-        +'<div style="display:flex;align-items:center;gap:6px">'
-          +badge+dupBadge
-          +'<span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;background:'+(t.tipo==='Entrada'?'#e8f8f0':'#fde8e8')+';color:'+(t.tipo==='Entrada'?'#27ae60':'#c0392b')+'">'+t.tipo+'</span>'
-        +'</div>'
-      +'</div>'
-      +'<div style="padding:0 14px 4px;font-size:13px;font-weight:700">'+t.descricao+'</div>'
-      +'<div style="padding:0 14px 8px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">'
-        +'<span style="font-size:16px;font-weight:800;color:'+(t.tipo==='Entrada'?'#27ae60':'#c0392b')+'">'+fmt(t.valor)+'</span>'
-        +(isEmp ? '<select onchange="impSetOrigem('+i+',this.value)" style="border:1.5px solid #ddd;border-radius:7px;padding:4px 8px;font-size:12px;background:#f9f9f9"><option value="">Origem...</option>'+origOpts+'</select>' : '')
-      +'</div>'
-      +'<div style="display:flex;border-top:1px solid #f0f0f0">'
-        +'<button onclick="impClassificar('+i+',\'Empresa\')" style="flex:1;border:none;padding:10px;font-size:12px;font-weight:700;cursor:pointer;background:'+(isEmp?'#e8f8f0':'#fafafa')+';color:'+(isEmp?'#27ae60':'#888')+'">✅ Empresa</button>'
-        +'<button onclick="impClassificar('+i+',\'Pessoal\')" style="flex:1;border:none;border-left:1px solid #f0f0f0;padding:10px;font-size:12px;font-weight:700;cursor:pointer;background:'+(isPes?'#fde8e8':'#fafafa')+';color:'+(isPes?'#c0392b':'#888')+'">❌ Pessoal</button>'
-        +'<button onclick="impClassificar('+i+',\'Ignorar\')" style="flex:1;border:none;border-left:1px solid #f0f0f0;padding:10px;font-size:12px;font-weight:700;cursor:pointer;background:'+(isIgn?'#f0f0f0':'#fafafa')+';color:'+(isIgn?'#666':'#bbb')+'">— Ignorar</button>'
-      +'</div>'
-    +'</div>';
+    var bgRow = isEmp?'#fff': isPes?'#fff8f8': isIgn?'#f8f8f8': '#fffdf0';
+    var opRow = isIgn ? '0.5' : '1';
+    var leftClr = isEmp?'#27ae60': isPes?'#e74c3c': isPend?'#f39c12': '#ccc';
+
+    var dataFmt = t.data.split('-').reverse().join('/');
+    var valStr = String(t.valor).replace('.',',');
+
+    // Dropdowns condicionais
+    var origemOpts = (t.tipo==='Entrada'?ORIGENS_ENTRADA:ORIGENS_SAIDA);
+    var origemSel = sel([''].concat(origemOpts), t.origem||'', 'onchange="impUpdField('+i+',\'origem\',this.value);impRenderLista()" '+ST);
+
+    // Cliente (Entrada+Cliente)
+    var clienteCell = '';
+    if(t.tipo==='Entrada' && t.origem==='Cliente'){
+      clienteCell = sel([''].concat(CLI_HON), t.cliente||'', 'onchange="impUpdField('+i+',\'cliente\',this.value)" '+ST);
+    } else { clienteCell = '<span style="color:#ccc">—</span>'; }
+
+    // RT (Entrada+RT)
+    var rtCell = '';
+    if(t.tipo==='Entrada' && t.origem==='RT'){
+      rtCell = sel([''].concat(RT_EMPRESAS), t.rt||'', 'onchange="impUpdField('+i+',\'rt\',this.value)" '+ST);
+    } else { rtCell = '<span style="color:#ccc">—</span>'; }
+
+    // Despesa (Saída)
+    var despCell = '';
+    if(t.tipo==='Saída'){
+      var despOpts = t.origem && DESP_MAP[t.origem] ? DESP_MAP[t.origem] : DESPESAS;
+      despCell = sel([''].concat(despOpts), t.despesa||'', 'onchange="impUpdField('+i+',\'despesa\',this.value)" '+ST);
+    } else { despCell = '<span style="color:#ccc">—</span>'; }
+
+    // Tipo badge
+    var tipoClr = t.tipo==='Entrada'?'#27ae60':'#c0392b';
+    var tipoBg  = t.tipo==='Entrada'?'#e8f8f0':'#fde8e8';
+
+    // Classificação mini-toggle
+    var cls = '<div style="display:flex;gap:3px">'
+      +'<button onclick="impClassificar('+i+',\'Empresa\')" title="Empresa" style="border:none;border-radius:5px;padding:3px 7px;font-size:10px;font-weight:700;cursor:pointer;background:'+(isEmp?'#27ae60':'#eee')+';color:'+(isEmp?'#fff':'#888')+'">E</button>'
+      +'<button onclick="impClassificar('+i+',\'Pessoal\')" title="Pessoal" style="border:none;border-radius:5px;padding:3px 7px;font-size:10px;font-weight:700;cursor:pointer;background:'+(isPes?'#e74c3c':'#eee')+';color:'+(isPes?'#fff':'#888')+'">P</button>'
+      +'</div>';
+
+    var dupBadge = t.duplicata ? ' <span style="font-size:9px;background:#f0f0f0;color:#999;border-radius:4px;padding:1px 5px">🔁</span>' : '';
+    var confBadge = t.confianca>0 ? ' <span style="font-size:9px;background:#e8f0ff;color:#2980b9;border-radius:4px;padding:1px 5px">'+t.confianca+'%</span>' : '';
+
+    return '<tr style="background:'+bgRow+';opacity:'+opRow+';border-left:3px solid '+leftClr+'">'
+      +'<td style="padding:6px 8px;white-space:nowrap;font-size:12px;color:#555">'+dataFmt+'</td>'
+      +'<td style="padding:6px 8px"><span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;background:'+tipoBg+';color:'+tipoClr+'">'+t.tipo+'</span></td>'
+      +'<td style="padding:6px 8px;min-width:110px">'+origemSel+'</td>'
+      +'<td style="padding:6px 8px;min-width:130px">'+clienteCell+'</td>'
+      +'<td style="padding:6px 8px;min-width:130px">'+rtCell+'</td>'
+      +'<td style="padding:6px 8px;min-width:130px">'+despCell+'</td>'
+      +'<td style="padding:6px 8px;font-size:12px;font-weight:700;color:'+tipoClr+';white-space:nowrap">'+fmt(t.valor)+'</td>'
+      +'<td style="padding:6px 8px;text-align:center">'+chk(t.pago||false,'onchange="impUpdField('+i+',\'pago\',this.checked)"')+'</td>'
+      +'<td style="padding:6px 8px;text-align:center">'+chk(t.nf||false,'onchange="impUpdField('+i+',\'nf\',this.checked)"')+'</td>'
+      +'<td style="padding:6px 8px;min-width:120px"><input type="text" value="'+(t.obs||'')+'" onchange="impUpdField('+i+',\'obs\',this.value)" placeholder="..." style="border:1px solid #e0e0e0;border-radius:6px;padding:3px 6px;font-size:11px;width:100%;background:#fafafa"></td>'
+      +'<td style="padding:6px 10px;white-space:nowrap"><div style="font-size:10px;color:#aaa;margin-bottom:3px">'+dupBadge+confBadge+'</div>'+cls+'</td>'
+    +'</tr>';
   }).join('');
+
+  lista.innerHTML = '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">'
+    +'<thead><tr style="background:#f8f8f8">'
+    +TH('DATA')+TH('TIPO')+TH('ORIGEM')+TH('CLIENTE')+TH('RT')+TH('DESPESA')+TH('VALOR')+TH('PAGO')+TH('NF')+TH('OBSERVAÇÕES')+TH('')
+    +'</tr></thead>'
+    +'<tbody>'+rows+'</tbody>'
+    +'</table></div>'
+    +'<div style="font-size:11px;color:#aaa;margin-top:6px;text-align:right">'+filtrado.length+' lançamentos exibidos · Clique <b>E</b>=Empresa <b>P</b>=Pessoal para classificar</div>';
+}
+
+function impUpdField(i, campo, val){
+  if(!impTxs[i]) return;
+  impTxs[i][campo] = val;
+  // Se mudou origem, limpa campos dependentes
+  if(campo==='origem'){ impTxs[i].cliente=''; impTxs[i].rt=''; impTxs[i].despesa=''; impRenderLista(); }
 }
 
 function impAprovarTodos(){
@@ -2650,7 +2702,12 @@ function impConfirmarImport(){
       Valor: String(tx.valor).replace('.',','),
       Movimentação: tx.tipo,
       Origem: tx.origem || (tx.tipo==='Entrada'?'Cliente':''),
-      pago: true, nf_emitida: false,
+      Cliente: tx.cliente || '',
+      RT: tx.rt || '',
+      Despesa: tx.despesa || '',
+      Observações: tx.obs || '',
+      pago: tx.pago || false,
+      nf_emitida: tx.nf || false,
       _ts: Date.now(),
       fonte_import: 'Extrato Banco Inter'
     };
