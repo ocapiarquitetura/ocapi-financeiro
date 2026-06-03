@@ -357,7 +357,7 @@ tr.row-pago td{opacity:.75}
     </div>
     <div class="chart-row">
       <div class="chart-card">
-        <div class="chart-title">Resultado por M&ecirc;s (Entrada &minus; Sa&iacute;da)</div>
+        <div class="chart-title">Resultado por Mês 2026 (Entrada − Saída)</div>
         <div id="ch-res-div"></div>
         <div class="chart-leg" id="leg-res"></div>
       </div>
@@ -992,7 +992,7 @@ function rendDash(){
   setTimeout(function(){
     rendChart('ch-rec-div','leg-rec','Entrada',dd);
     rendChart('ch-desp-div','leg-desp','Saída',dd);
-    rendChartResultado('ch-res-div','leg-res',dd);
+    rendChartResultado('ch-res-div','leg-res',dados.filter(function(r){return String(r.Ano)==='2026'||parseInt(r.Ano)===2026;}));
     rendChartPizza('ch-pizza-div','leg-pizza',dd);
     rendTop5(dd);
   },50);
