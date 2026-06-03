@@ -345,12 +345,12 @@ tr.row-pago td{opacity:.75}
   </div>
     <div class="chart-row">
       <div class="chart-card">
-        <div class="chart-title">Faturamento por M&ecirc;s</div>
+        <div class="chart-title">Faturamento por Mês 2026</div>
         <div id="ch-rec-div"></div>
         <div class="chart-leg" id="leg-rec"></div>
       </div>
       <div class="chart-card">
-        <div class="chart-title">Custo por M&ecirc;s</div>
+        <div class="chart-title">Custo por Mês 2026</div>
         <div id="ch-desp-div"></div>
         <div class="chart-leg" id="leg-desp"></div>
       </div>
@@ -990,9 +990,10 @@ function rendDash(){
     kpi('Futuro a Pagar',fmt(futP),'kpi-red','Saídas ainda não confirmadas','')+
     alertKpi;
   setTimeout(function(){
-    rendChart('ch-rec-div','leg-rec','Entrada',dd);
-    rendChart('ch-desp-div','leg-desp','Saída',dd);
-    rendChartResultado('ch-res-div','leg-res',dados.filter(function(r){return String(r.Ano)==='2026'||parseInt(r.Ano)===2026;}));
+    var dd2026=dados.filter(function(r){return String(r.Ano)==='2026'||parseInt(r.Ano)===2026;});
+    rendChart('ch-rec-div','leg-rec','Entrada',dd2026);
+    rendChart('ch-desp-div','leg-desp','Saída',dd2026);
+    rendChartResultado('ch-res-div','leg-res',dd2026);
     rendChartPizza('ch-pizza-div','leg-pizza',dd);
     rendTop5(dd);
   },50);
