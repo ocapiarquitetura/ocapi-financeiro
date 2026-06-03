@@ -513,6 +513,7 @@ tr.row-pago td{opacity:.75}
       <div class="tbl-head"><h3>Lan&ccedil;amentos</h3><span id="h-count" style="font-size:12px;color:#888"></span></div>
       <div style="overflow-x:auto">
       <table><thead><tr>
+        <th style="width:32px;text-align:center"><input type="checkbox" id="h-sel-all" title="Selecionar todos" onchange="toggleSelAll(this.checked)" style="cursor:pointer;width:14px;height:14px"></th>
         <th id="h-th-Data" onclick="setHSort('Data')">Data <span class="sort-arrow">↓</span></th><th id="h-th-Tipo" onclick="setHSort('Tipo')">Tipo <span class="sort-arrow">↕</span></th><th id="h-th-Origem" onclick="setHSort('Origem')">Origem <span class="sort-arrow">↕</span></th><th id="h-th-Cliente" onclick="setHSort('Cliente')">Cliente <span class="sort-arrow">↕</span></th><th id="h-th-RT" onclick="setHSort('RT')">RT <span class="sort-arrow">↕</span></th><th id="h-th-Despesa" onclick="setHSort('Despesa')">Despesa <span class="sort-arrow">↕</span></th><th id="h-th-Parcela" onclick="setHSort('Parcela')">Parcela <span class="sort-arrow">↕</span></th><th id="h-th-Valor" onclick="setHSort('Valor')">Valor <span class="sort-arrow">↕</span></th>
         <th id="h-th-Pago" onclick="setHSort('Pago')" title="Pagamento confirmado">Pago <span class="sort-arrow">↕</span></th>
         <th id="h-th-NF" onclick="setHSort('NF')">NF <span class="sort-arrow">↕</span></th>
@@ -1224,6 +1225,7 @@ function rendHist(){
     if(isPago)tr.className='row-pago';
     var obsVal=(r.obs||'').replace(/"/g,'&quot;');
     tr.innerHTML=
+      '<td style="width:32px;text-align:center"><input type="checkbox" class="h-row-chk" data-ri="'+ri+'" style="cursor:pointer;width:14px;height:14px" '+(hSelected.has(ri)?'checked':'')+' onchange="toggleSelRow('+ri+',this.checked)"></td>'+
       '<td style="white-space:nowrap">'+fmtDate(r.Data)+'</td>'+
       '<td><span class="badge badge-'+(isE?'in':'out')+'">'+(isE?'Entrada':'Saída')+'</span></td>'+
       '<td>'+(r.Origem||'—')+'</td>'+
@@ -1708,6 +1710,66 @@ function clearHFilt(){
   hFutFilt='';
   ['receber','pagar'].forEach(function(k){var b=R('h-btn-'+k);if(b)b.className='btn btn-out';});
   rendHist();
+}
+var hSelected=new Set();
+function toggleSelRow(ri,checked){
+  if(checked)hSelected.add(ri);else hSelected.delete(ri);
+  updBulkBar();
+  var allChk=document.getElementById('h-sel-all');
+  if(allChk){
+    var allRi=Array.from(document.querySelectorAll('.h-row-chk')).map(function(c){return parseInt(c.dataset.ri);});
+    allChk.checked=allRi.length>0&&allRi.every(function(r){return hSelected.has(r);});
+    allChk.indeterminate=!allChk.checked&&allRi.some(function(r){return hSelected.has(r);});
+  }
+}
+function toggleSelAll(checked){
+  document.querySelectorAll('.h-row-chk').forEach(function(c){
+    var ri=parseInt(c.dataset.ri);
+    if(checked)hSelected.add(ri);else hSelected.delete(ri);
+    c.checked=checked;
+  });
+  updBulkBar();
+}
+function bulkSetField(field,val){
+  hSelected.forEach(function(ri){if(dados[ri])dados[ri][field]=val;});
+  salvarLocal();rendHist();updBulkBar();
+  showToast('✅ '+hSelected.size+' registro'+(hSelected.size>1?'s':'')+' atualizados','#27ae60');
+}
+function updBulkBar(){
+  var bar=document.getElementById('h-bulk-bar');
+  if(!bar){
+    bar=document.createElement('div');
+    bar.id='h-bulk-bar';
+    bar.style.cssText='position:fixed;bottom:28px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;padding:10px 18px;border-radius:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;z-index:9000;box-shadow:0 4px 24px rgba(0,0,0,.35);font-size:13px;font-weight:600;transition:opacity .2s;max-width:90vw';
+    document.body.appendChild(bar);
+  }
+  var n=hSelected.size;
+  if(n===0){bar.style.opacity='0';bar.style.pointerEvents='none';return;}
+  bar.style.opacity='1';bar.style.pointerEvents='auto';
+  var selStyle='background:#2a2a2a;color:#fff;border:1px solid #444;border-radius:7px;padding:5px 10px;font-size:12px;cursor:pointer';
+  var btnStyle='border:none;border-radius:7px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer';
+  var origens=ORIGENS_ENTRADA.concat(ORIGENS_SAIDA);
+  var origOpts=origens.map(function(o){return '<option value="'+o+'">'+o+'</option>';}).join('');
+  bar.innerHTML=
+    '<span style="color:#aaa;font-size:12px">'+n+' selecionado'+(n>1?'s':'')+'</span>'
+    +'<select style="'+selStyle+'" onchange="if(this.value){bulkSetField(\'Movimentação\',this.value);this.value=\'\'}">'
+      +'<option value="">Tipo ▾</option>'
+      +'<option value="Entrada">→ Entrada</option>'
+      +'<option value="Saída">→ Saída</option>'
+    +'</select>'
+    +'<select style="'+selStyle+'" onchange="if(this.value){bulkSetField(\'Origem\',this.value);this.value=\'\'}">'
+      +'<option value="">Origem ▾</option>'+origOpts
+    +'</select>'
+    +'<button onclick="bulkDelete()" style="'+btnStyle+'background:#c0392b;color:#fff">🗑 Excluir</button>'
+    +'<button onclick="hSelected.clear();rendHist();updBulkBar();" style="'+btnStyle+'background:#333;color:#aaa">✕</button>';
+}
+function bulkDelete(){
+  var n=hSelected.size;
+  if(!confirm('Excluir '+n+' lançamento'+(n>1?'s':'')+' selecionado'+(n>1?'s':'')+' permanentemente?'))return;
+  var indices=Array.from(hSelected).sort(function(a,b){return b-a;});
+  indices.forEach(function(ri){dados.splice(ri,1);});
+  hSelected.clear();
+  salvarLocal();rendAll();updBulkBar();
 }
 function importarExtrato(){
   var registros=[
