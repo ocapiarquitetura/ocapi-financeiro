@@ -3076,31 +3076,47 @@ function rendConcil(){
   h += '</div>';
   cont.innerHTML=h;
 }
+function concilBuscarDado(c){
+  // 1. Tenta pelo índice salvo (caminho rápido)
+  var d = dados[c.matchIdx];
+  if(d && !d.fonte_import){
+    // Valida que bate com matchData para garantir que o índice não ficou obsoleto
+    var md = c.matchData;
+    if(md && d.Valor===md.Valor && d.Data===md.Data && d['Movimentação']===md['Movimentação']) return {d:d, idx:c.matchIdx};
+  }
+  // 2. Fallback: busca pelo matchData (valor + data + tipo)
+  var md = c.matchData; if(!md) return null;
+  for(var i=0;i<dados.length;i++){
+    var r=dados[i];
+    if(r.Valor===md.Valor && r.Data===md.Data && r['Movimentação']===md['Movimentação'] && !r.fonte_import){
+      c.matchIdx=i; // corrige o índice para futuras chamadas
+      return {d:r, idx:i};
+    }
+  }
+  return null;
+}
 function concilAprovar(ci){
   var c=conciliacoes[ci]; if(!c||c.status!=='pendente') return;
-  // Marcar registro existente como conciliado
-  var d=dados[c.matchIdx];
+  var found = concilBuscarDado(c);
+  var d = found ? found.d : null;
   if(d){
     // Guardar estado original para poder desfazer no Limpar
     c.original={Data:d.Data,Ano:d.Ano,Mês:d.Mês,pago:d.pago,conciliado:d.conciliado,conciliado_em:d.conciliado_em};
-    d.conciliado=true;d.conciliado_em=new Date().toISOString().slice(0,10);d.pago=true;
-    // Atualiza Data de Movimentação com a data real do extrato
-    var txData=c.tx.data;
+    d.conciliado=true; d.conciliado_em=new Date().toISOString().slice(0,10); d.pago=true;
+    // Atualiza Data de Movimentação com a data real do extrato (formato DD/MM/YYYY)
+    var txData=c.tx.data; // YYYY-MM-DD
     if(txData){
-      d.Data=txData;
+      d.Data=txData.split('-').reverse().join('/'); // converte para DD/MM/YYYY
       var pts=txData.split('-');
-      d.Ano=parseInt(pts[0]);d.Mês=parseInt(pts[1]);
+      d.Ano=parseInt(pts[0]); d.Mês=parseInt(pts[1]);
     }
-  }
-  // Auto-salvar alias: se nome do extrato ≠ nome no sistema, aprende automaticamente
-  if(d){
+    // Auto-salvar alias se nomes diferem
     var txNomeAlias=(c.tx.descricao||'').trim().toUpperCase();
     var sysNomeAlias=(d.Cliente||d.Descrição||'').trim().toUpperCase();
     if(txNomeAlias && sysNomeAlias && txNomeAlias!==sysNomeAlias){
       var aliasJaExiste=ALIASES.some(function(a){return a.extrato.toUpperCase()===txNomeAlias;});
       if(!aliasJaExiste){
         ALIASES.push({extrato:c.tx.descricao.trim(), sistema:d.Cliente||d.Descrição||''});
-        showToast('📚 Alias aprendido: "'+c.tx.descricao.trim()+'" → "'+(d.Cliente||d.Descrição||'')+'"','#2980b9',4000);
       }
     }
   }
