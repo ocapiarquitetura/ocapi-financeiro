@@ -300,6 +300,11 @@ tr.row-pago td{opacity:.75}
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
         <span class="sb-link-label">Importar Extrato</span>
       </a>
+      <a class="sb-link" id="sb-concil-link" onclick="showPage('p-concil',this)" style="position:relative">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        <span class="sb-link-label">Concilia&ccedil;&atilde;o</span>
+        <span id="sb-concil-badge" style="display:none;position:absolute;top:6px;right:8px;background:#e67e22;color:#fff;border-radius:10px;font-size:10px;font-weight:700;padding:1px 6px;min-width:18px;text-align:center"></span>
+      </a>
       <a class="sb-link" onclick="showPage('p-admin',this)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 1 0-16 0"/></svg>
         <span class="sb-link-label">Admin</span>
@@ -710,6 +715,11 @@ tr.row-pago td{opacity:.75}
     </div>
   </div>
 
+  <!-- CONCILIAÇÃO -->
+  <div id="p-concil" class="page">
+    <div id="concil-content"></div>
+  </div>
+
   <!-- ADMIN -->
   <div id="p-admin" class="page">
     <div class="card">
@@ -823,8 +833,8 @@ var DADOS_BASE=dados.slice();
 function salvarLocal(){salvarFirebase();}
 function salvarFirebase(){
   if(!fbAuth||!fbAuth.currentUser){return;}
-  var cfg={CLI_HON:CLI_HON,RT_EMPRESAS:RT_EMPRESAS,DESPESAS:DESPESAS,DESP_MAP:DESP_MAP,ORIGENS_ENTRADA:ORIGENS_ENTRADA,ORIGENS_SAIDA:ORIGENS_SAIDA};
-  var payload={dados:dados,config:cfg,migrated:true};
+  var cfg={CLI_HON:CLI_HON,RT_EMPRESAS:RT_EMPRESAS,DESPESAS:DESPESAS,DESP_MAP:DESP_MAP,ORIGENS_ENTRADA:ORIGENS_ENTRADA,ORIGENS_SAIDA:ORIGENS_SAIDA,ALIASES:ALIASES};
+  var payload={dados:dados,config:cfg,conciliacoes:conciliacoes,migrated:true};
   var payloadBytes=new Blob([JSON.stringify(payload)]).size;
   var LIMIT=1000000;
   if(payloadBytes>LIMIT*0.9){
@@ -842,6 +852,8 @@ var DESPESAS=["Alexandre Lima Fotógrafo", "Processo Anna", "Pró-labore", "Arqu
 var ORIGENS_SAIDA=["Imposto", "Pagamento de Folha", "Contabilidade", "Marketing", "Fornecedores", "Outros"];
 var DESP_MAP={"Imposto": ["Simples Nacional", "Darf", "Cau Empresa", "Cau Pessoal", "Boleto Cau Modernos", "CJF"], "Pagamento de Folha": ["Arquiteta Marina", "Arquiteta Marina Extras", "Arquiteta Marina Obra Dalila e Gabriel", "Arquiteta Nathália", "Arquiteta Thamires", "Arquiteta Vanessa", "Arquiteto Edson"], "Contabilidade": ["Contabilidade", "Mutabile"], "Marketing": ["Alexandre Lima Fotógrafo", "Henrique Queiroga Fotógrafo", "Designer Anna Maria", "Designer Anna Maria Extras", "Designer Anna Maria Hora Extra", "Hostmidia", "Site", "Dropbox", "Celular"], "Fornecedores": [], "Outros": []};
 var ORIGENS_ENTRADA=["Cliente", "RT"];
+var ALIASES=[]; // [{extrato:'TEREZA',sistema:'Terezinha Magalhães'}]
+var conciliacoes=[]; // [{tx:{...}, match:{idx,d}, status:'pendente'}]
 var MES_NUM={'Janeiro':1,'Fevereiro':2,'Março':3,'Abril':4,'Maio':5,'Junho':6,'Julho':7,'Agosto':8,'Setembro':9,'Outubro':10,'Novembro':11,'Dezembro':12};
 function getMesNum(r){var m=r.Mês;if(!m)return 0;if(typeof m==='number')return m;return MES_NUM[m]||parseInt(m)||0;}
 var dashMode='mes_atual',dashAno='',dashFrom='',dashTo='',dashUltPage=1;
@@ -1636,7 +1648,7 @@ function alertToggleNF(ri,btn){
   rendAlertas();
   rendHist();
 }
-var aLabels={cli_hon:'Clientes',rt_emp:'RT',origens_e:'Origens de Entrada',origens_s:'Origens de Saída'};
+var aLabels={cli_hon:'Clientes',rt_emp:'RT',origens_e:'Origens de Entrada',origens_s:'Origens de Saída',aliases:'Aliases de Conciliação'};
 function rendAdmin(){
   var tabs=R('adm-tabs');if(!tabs)return;tabs.innerHTML='';
   Object.keys(aLabels).forEach(function(k){
@@ -1659,6 +1671,7 @@ function rendAdmin(){
   else if(aTab==='rt_emp')renderAdmList(cont,'RT_EMPRESAS',RT_EMPRESAS,'RT');
   else if(aTab==='origens_e')renderAdmOrigensE(cont);
   else if(aTab==='origens_s')renderAdmOrigensS(cont);
+  else if(aTab==='aliases')renderAdmAliases(cont);
   /* restore focus to search input */
   if(admSearch){var el=cont.querySelector('input[placeholder="Buscar…"]');if(el){el.focus();var len=el.value.length;el.setSelectionRange(len,len);}}
   /* Botão de importação temporária */
@@ -1905,7 +1918,40 @@ function rendMobAdmin(){
   else if(aTab==='rt_emp')renderAdmList(mc,'RT_EMPRESAS',RT_EMPRESAS,'RT');
   else if(aTab==='origens_e')renderAdmOrigensE(mc);
   else if(aTab==='origens_s')renderAdmOrigensS(mc);
+  else if(aTab==='aliases')renderAdmAliases(mc);
 }
+function renderAdmAliases(cont){
+  // Header
+  var h=document.createElement('div');h.style.cssText='margin-bottom:16px';
+  h.innerHTML='<p style="font-size:12px;color:#888;margin-bottom:14px">Defina equivalências entre nomes do extrato e nomes do sistema para a conciliação automática.</p>';
+  cont.appendChild(h);
+  // Add form
+  var form=document.createElement('div');form.style.cssText='display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap';
+  var inpExt=document.createElement('input');inpExt.placeholder='Nome no extrato (ex: TEREZA)';inpExt.style.cssText='flex:1;padding:9px 13px;border:1.5px solid var(--bord);border-radius:9px;font-size:13px;min-width:160px';
+  var inpSis=document.createElement('input');inpSis.placeholder='Nome no sistema (ex: Terezinha Magalhães)';inpSis.style.cssText='flex:1;padding:9px 13px;border:1.5px solid var(--bord);border-radius:9px;font-size:13px;min-width:160px';
+  var btnAdd=document.createElement('button');btnAdd.textContent='+ Adicionar';btnAdd.style.cssText='padding:9px 18px;background:#1a1a1a;color:#fff;border:none;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap';
+  btnAdd.onclick=function(){
+    var ext=inpExt.value.trim();var sis=inpSis.value.trim();
+    if(!ext||!sis){showToast('Preencha os dois campos','#e67e22');return;}
+    if(ALIASES.some(function(a){return a.extrato.toUpperCase()===ext.toUpperCase();})){showToast('Alias já existe','#e67e22');return;}
+    ALIASES.push({extrato:ext,sistema:sis});salvarLocal();rendAdmin();
+  };
+  form.appendChild(inpExt);form.appendChild(inpSis);form.appendChild(btnAdd);cont.appendChild(form);
+  // List
+  if(!ALIASES.length){var empty=document.createElement('p');empty.style.cssText='color:#bbb;font-size:13px;text-align:center;padding:20px';empty.textContent='Nenhum alias cadastrado';cont.appendChild(empty);return;}
+  var table=document.createElement('div');table.style.cssText='border:1.5px solid var(--bord);border-radius:12px;overflow:hidden';
+  var thead='<div style="display:grid;grid-template-columns:1fr 1fr 80px;background:#f7f7f7;border-bottom:1.5px solid var(--bord);padding:10px 16px;font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#888"><span>Nome no Extrato</span><span>Nome no Sistema</span><span></span></div>';
+  var rows='';
+  ALIASES.forEach(function(a,i){
+    rows+='<div style="display:grid;grid-template-columns:1fr 1fr 80px;padding:10px 16px;border-bottom:1px solid #f5f5f5;align-items:center;font-size:13px">'
+      +'<span style="font-weight:600;color:#c0392b">'+a.extrato+'</span>'
+      +'<span style="color:#27ae60">→ '+a.sistema+'</span>'
+      +'<button onclick="aliasExcluir('+i+')" style="background:transparent;border:none;cursor:pointer;font-size:18px;color:#ccc;padding:0">🗑</button>'
+      +'</div>';
+  });
+  table.innerHTML=thead+rows;cont.appendChild(table);
+}
+function aliasExcluir(i){ALIASES.splice(i,1);salvarLocal();rendAdmin();}
 function exportXLSX(){
   var s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
   s.onload=function(){var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(dados),'Lançamentos');XLSX.writeFile(wb,'Ocapi_'+today()+'.xlsx');};
@@ -1917,7 +1963,7 @@ function showPage(pid,el){
   R(pid).classList.add('act');el.classList.add('act');
   if(pid==='p-dash')rendDash();if(pid==='p-hist')rendHist();
   if(pid==='p-alertas')rendAlertas();if(pid==='p-admin')rendAdmin();
-  if(pid==='p-importar')impInitPage();
+  if(pid==='p-importar')impInitPage();if(pid==='p-concil')rendConcil();
 }
 function toggleSidebar(){
   var sb=document.getElementById('sidebar');
@@ -2201,7 +2247,10 @@ function mergeFirebaseData(fdata){
     if(c.DESP_MAP)Object.keys(c.DESP_MAP).forEach(function(k){if(!DESP_MAP[k])DESP_MAP[k]=[];c.DESP_MAP[k].forEach(function(v){if(DESP_MAP[k].indexOf(v)<0)DESP_MAP[k].push(v);});});
     if(c.ORIGENS_ENTRADA)c.ORIGENS_ENTRADA.forEach(function(v){if(ORIGENS_ENTRADA.indexOf(v)<0)ORIGENS_ENTRADA.push(v);});
     if(c.ORIGENS_SAIDA)c.ORIGENS_SAIDA.forEach(function(v){if(ORIGENS_SAIDA.indexOf(v)<0)ORIGENS_SAIDA.push(v);});
+    if(c.ALIASES){ALIASES=c.ALIASES;}
   }
+  if(fdata&&fdata.conciliacoes){conciliacoes=fdata.conciliacoes;}
+  atualizarConcilBadge();
   // migração: renomear Honorário → Cliente
   var honIdx=ORIGENS_ENTRADA.indexOf('Honorário');
   if(honIdx>=0){if(ORIGENS_ENTRADA.indexOf('Cliente')<0)ORIGENS_ENTRADA[honIdx]='Cliente';else ORIGENS_ENTRADA.splice(honIdx,1);}
@@ -2717,44 +2766,214 @@ function impAprovarTodos(){
   impRenderLista();
 }
 
+// ── Algoritmo de matching para conciliação ──
+function concilNomeNormalizado(nome){
+  if(!nome) return '';
+  var n = nome.toUpperCase().trim();
+  // Aplica aliases: se nome do extrato bate com alias, retorna nome do sistema
+  for(var i=0;i<ALIASES.length;i++){
+    if(ALIASES[i].extrato.toUpperCase()===n) return ALIASES[i].sistema.toUpperCase();
+  }
+  return n;
+}
+function concilMatchScore(tx, d, dIdx){
+  // Só compara movimentações do mesmo tipo
+  if(tx.tipo !== d.Movimentação) return 0;
+  // Não compara com registros já conciliados
+  if(d.conciliado) return 0;
+  var score = 0;
+  // Valor
+  var txVal = tx.valor;
+  var dVal = parseFloat(String(d.Valor||0).replace(',','.')) || 0;
+  var diff = Math.abs(txVal - dVal);
+  if(diff < 0.01) score += 50; // exato
+  else if(dVal > 0 && diff/dVal < 0.05) score += 25; // ±5%
+  else return 0; // valor muito diferente — não é match
+  // Data (±7 dias)
+  var txDate = new Date(tx.data+'T12:00:00');
+  if(d.Data){
+    var dp = d.Data.split('/');
+    var dDate = new Date(dp[2]+'-'+dp[1]+'-'+dp[0]+'T12:00:00');
+    var dayDiff = Math.abs((txDate - dDate)/86400000);
+    if(dayDiff <= 7) score += Math.round(30 - dayDiff*4);
+    else return 0; // fora da janela de 7 dias
+  }
+  // Nome (via aliases)
+  var txNome = concilNomeNormalizado(tx.cliente || tx.rt || tx.descricao || '');
+  var dNome = concilNomeNormalizado(d.Cliente || d.RT || '');
+  if(txNome && dNome){
+    if(txNome === dNome) score += 20;
+    else if(txNome.indexOf(dNome)>=0 || dNome.indexOf(txNome)>=0) score += 10;
+  }
+  return score;
+}
 function impConfirmarImport(){
   var paraImportar = impTxs.filter(function(t){return !t.excluida;});
   if(!paraImportar.length){ showToast('Nenhum lançamento para importar','#e67e22'); return; }
-  if(!confirm(paraImportar.length+' lançamentos serão importados para o sistema. Continuar?')) return;
+  if(!confirm(paraImportar.length+' lançamentos serão processados. Itens sem vínculo entram direto; itens com possível vínculo vão para Conciliação. Continuar?')) return;
 
-  var importados = 0, duplicados = 0;
+  var importados = 0, paraConcilar = 0;
   paraImportar.forEach(function(tx){
     var dataFmt = tx.data.split('-').reverse().join('/');
-    // Check duplicate by date+valor
-    var dup = dados.some(function(d){ return d.Data===dataFmt && Math.abs((parseFloat(d.Valor)||0)-tx.valor)<0.01; });
-    if(dup){ duplicados++; return; }
+    // 1. Verificar duplicata exata (já importado antes)
+    var dup = dados.some(function(d){ return d.Data===dataFmt && Math.abs((parseFloat(String(d.Valor||0).replace(',','.'))||0)-tx.valor)<0.01 && d.Movimentação===tx.tipo && d.fonte_import; });
+    if(dup){ return; }
 
-    var ano = parseInt(tx.data.split('-')[0]);
-    var mes = parseInt(tx.data.split('-')[1]);
-    var novo = {
-      Data: dataFmt, Ano: ano, Mês: mes,
-      Descrição: tx.descricao,
-      Valor: String(tx.valor).replace('.',','),
-      Movimentação: tx.tipo,
-      Origem: tx.tipo==='Saída' ? (tx.categoria||'') : (tx.origem||'Cliente'),
-      Cliente: tx.cliente || '',
-      RT: tx.rt || '',
-      Despesa: tx.despesa || '',
-      Observações: tx.obs || '',
-      nf_emitida: tx.nf==='Sim',
-      _ts: Date.now(),
-      fonte_import: 'Extrato Banco Inter'
-    };
-    dados.push(novo);
-    importados++;
+    // 2. Buscar melhor match nos dados existentes
+    var bestScore = 0, bestIdx = -1;
+    dados.forEach(function(d, idx){
+      var s = concilMatchScore(tx, d, idx);
+      if(s > bestScore){ bestScore=s; bestIdx=idx; }
+    });
+
+    if(bestScore >= 50 && bestIdx >= 0){
+      // Vai para conciliação
+      conciliacoes.push({tx:tx, matchIdx:bestIdx, matchData:dados[bestIdx], score:bestScore, status:'pendente', ts:Date.now()});
+      paraConcilar++;
+    } else {
+      // Entra direto no sistema
+      var ano = parseInt(tx.data.split('-')[0]);
+      var mes = parseInt(tx.data.split('-')[1]);
+      var novo = {
+        Data: dataFmt, Ano: ano, Mês: mes,
+        Descrição: tx.descricao,
+        Valor: String(tx.valor).replace('.',','),
+        Movimentação: tx.tipo,
+        Origem: tx.tipo==='Saída' ? (tx.categoria||'') : (tx.origem||'Cliente'),
+        Cliente: tx.cliente || '',
+        RT: tx.rt || '',
+        Despesa: tx.despesa || '',
+        Observações: tx.obs || '',
+        nf_emitida: tx.nf==='Sim',
+        _ts: Date.now(),
+        fonte_import: 'Extrato Banco Inter'
+      };
+      // Alerta duplicata por valor próximo (não é fonte_import)
+      var semelhante = dados.some(function(d){
+        if(!d.Data) return false;
+        var dp=d.Data.split('/');var dd=new Date(dp[2]+'-'+dp[1]+'-'+dp[0]+'T12:00:00');
+        var td=new Date(tx.data+'T12:00:00');
+        var dayDiff=Math.abs((td-dd)/86400000);
+        var dVal=parseFloat(String(d.Valor||0).replace(',','.'))||0;
+        return dayDiff<=7 && Math.abs(dVal-tx.valor)<0.01 && d.Movimentação===tx.tipo;
+      });
+      if(semelhante) novo._alerta_semelhante=true;
+      dados.push(novo);
+      importados++;
+    }
   });
 
   salvarLocal();
+  atualizarConcilBadge();
   R('imp-step2').style.display='none';
   R('imp-step3').style.display='block';
-  R('imp-done-title').textContent = importados+' lançamentos importados com sucesso!';
-  R('imp-done-sub').textContent = (duplicados>0 ? duplicados+' duplicatas ignoradas. ' : '')+'Todos disponíveis em Controle.';
-  showToast('✅ '+importados+' lançamentos importados!','#27ae60',4000);
+  var msg = importados+' lançamentos importados';
+  if(paraConcilar>0) msg += ' · '+paraConcilar+' aguardam conciliação';
+  R('imp-done-title').textContent = msg;
+  var sub = 'Lançamentos diretos disponíveis em Controle.';
+  if(paraConcilar>0) sub += ' Acesse Conciliação na barra lateral para revisar os vínculos.';
+  R('imp-done-sub').textContent = sub;
+  showToast('✅ '+importados+' importados'+(paraConcilar?' · ⏳ '+paraConcilar+' para conciliar':''),'#27ae60',5000);
+}
+// ── Badge de conciliação ──
+function atualizarConcilBadge(){
+  var pendentes = conciliacoes.filter(function(c){return c.status==='pendente';}).length;
+  var badge = R('sb-concil-badge');
+  if(badge){
+    if(pendentes>0){badge.style.display='block';badge.textContent=pendentes;}
+    else badge.style.display='none';
+  }
+}
+// ── Página de Conciliação ──
+function rendConcil(){
+  atualizarConcilBadge();
+  var cont = R('concil-content'); if(!cont) return;
+  var pendentes = conciliacoes.filter(function(c){return c.status==='pendente';});
+  if(!pendentes.length){
+    cont.innerHTML='<div style="text-align:center;padding:60px 20px"><div style="font-size:48px;margin-bottom:16px">✅</div><h2 style="font-size:18px;font-weight:700;margin-bottom:8px">Nenhuma conciliação pendente</h2><p style="color:#aaa;font-size:13px">Quando o sistema detectar possíveis vínculos na importação, eles aparecerão aqui.</p></div>';
+    return;
+  }
+  var h = '<div style="margin-bottom:24px"><h2 style="font-size:20px;font-weight:800;margin-bottom:4px">Conciliação Bancária</h2>'
+    +'<p style="font-size:13px;color:#999">'+pendentes.length+' item(ns) aguardam sua revisão. Confirme ou rejeite o vínculo sugerido.</p></div>';
+  h += '<div style="display:flex;flex-direction:column;gap:16px">';
+  conciliacoes.forEach(function(c,ci){
+    if(c.status!=='pendente') return;
+    var tx=c.tx, md=c.matchData;
+    var txValFmt='R$ '+tx.valor.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+    var mdVal=parseFloat(String(md.Valor||0).replace(',','.'))||0;
+    var mdValFmt='R$ '+mdVal.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+    var txNome=tx.cliente||tx.rt||tx.descricao||'';
+    var mdNome=md.Cliente||md.RT||md.Descrição||'';
+    var tipoCor=tx.tipo==='Entrada'?'#27ae60':'#c0392b';
+    h += '<div style="background:#fff;border-radius:14px;border:1.5px solid #e0e0e0;overflow:hidden">'
+      // Cabeçalho
+      +'<div style="background:#f7f7f7;padding:12px 20px;border-bottom:1px solid #eee;display:flex;align-items:center;gap:10px">'
+      +'<span style="font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#aaa">Vínculo sugerido</span>'
+      +'<span style="background:#fff3e0;color:#e67e22;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px">Score: '+c.score+'</span>'
+      +'</div>'
+      // Corpo 2 colunas
+      +'<div style="display:grid;grid-template-columns:1fr 40px 1fr;gap:0;align-items:center">'
+      // Extrato
+      +'<div style="padding:20px">'
+      +'<div style="font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#aaa;margin-bottom:10px">📄 Extrato</div>'
+      +'<div style="font-size:13px;font-weight:700;margin-bottom:6px">'+txNome+'</div>'
+      +'<div style="font-size:12px;color:#666;margin-bottom:4px">'+tx.descricao+'</div>'
+      +'<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px">'
+      +'<span style="font-size:15px;font-weight:800;color:'+tipoCor+'">'+txValFmt+'</span>'
+      +'<span style="font-size:12px;color:#aaa;align-self:center">'+tx.data.split('-').reverse().join('/')+'</span>'
+      +'</div></div>'
+      // Seta
+      +'<div style="text-align:center;font-size:20px;color:#bbb">↔</div>'
+      // Sistema
+      +'<div style="padding:20px">'
+      +'<div style="font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#aaa;margin-bottom:10px">💾 Sistema</div>'
+      +'<div style="font-size:13px;font-weight:700;margin-bottom:6px">'+mdNome+'</div>'
+      +'<div style="font-size:12px;color:#666;margin-bottom:4px">'+(md.Origem||md.Movimentação||'')+'</div>'
+      +'<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px">'
+      +'<span style="font-size:15px;font-weight:800;color:'+tipoCor+'">'+mdValFmt+'</span>'
+      +'<span style="font-size:12px;color:#aaa;align-self:center">'+(md.Data||'')+'</span>'
+      +'</div></div>'
+      +'</div>'
+      // Ações
+      +'<div style="padding:14px 20px;border-top:1px solid #f0f0f0;display:flex;gap:10px;justify-content:flex-end">'
+      +'<button onclick="concilRejeitar('+ci+')" style="padding:9px 20px;border-radius:9px;border:1.5px solid #ddd;background:#fff;font-size:13px;font-weight:600;cursor:pointer;color:#666">✗ Rejeitar — importar como novo</button>'
+      +'<button onclick="concilAprovar('+ci+')" style="padding:9px 20px;border-radius:9px;border:none;background:#27ae60;color:#fff;font-size:13px;font-weight:700;cursor:pointer">✓ Confirmar vínculo</button>'
+      +'</div>'
+      +'</div>';
+  });
+  h += '</div>';
+  cont.innerHTML=h;
+}
+function concilAprovar(ci){
+  var c=conciliacoes[ci]; if(!c||c.status!=='pendente') return;
+  // Marcar registro existente como conciliado
+  var d=dados[c.matchIdx];
+  if(d){d.conciliado=true;d.conciliado_em=new Date().toISOString().slice(0,10);d.pago=true;}
+  c.status='aprovado';
+  salvarLocal();
+  showToast('✅ Vínculo confirmado — lançamento marcado como recebido/pago','#27ae60',3000);
+  rendConcil();
+}
+function concilRejeitar(ci){
+  var c=conciliacoes[ci]; if(!c||c.status!=='pendente') return;
+  // Importar como novo lançamento
+  var tx=c.tx;
+  var dataFmt=tx.data.split('-').reverse().join('/');
+  var ano=parseInt(tx.data.split('-')[0]),mes=parseInt(tx.data.split('-')[1]);
+  dados.push({
+    Data:dataFmt,Ano:ano,Mês:mes,
+    Descrição:tx.descricao,
+    Valor:String(tx.valor).replace('.',','),
+    Movimentação:tx.tipo,
+    Origem:tx.tipo==='Saída'?(tx.categoria||''):(tx.origem||'Cliente'),
+    Cliente:tx.cliente||'',RT:tx.rt||'',Despesa:tx.despesa||'',
+    Observações:tx.obs||'',nf_emitida:tx.nf==='Sim',
+    _ts:Date.now(),fonte_import:'Extrato Banco Inter'
+  });
+  c.status='rejeitado';
+  salvarLocal();
+  showToast('Lançamento importado como novo','#e67e22',3000);
+  rendConcil();
 }
 
 function impVoltarStep1(){
