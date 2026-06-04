@@ -3018,7 +3018,16 @@ function concilAprovar(ci){
   var c=conciliacoes[ci]; if(!c||c.status!=='pendente') return;
   // Marcar registro existente como conciliado
   var d=dados[c.matchIdx];
-  if(d){d.conciliado=true;d.conciliado_em=new Date().toISOString().slice(0,10);d.pago=true;}
+  if(d){
+    d.conciliado=true;d.conciliado_em=new Date().toISOString().slice(0,10);d.pago=true;
+    // Atualiza Data de Movimentação com a data real do extrato
+    var txData=c.tx.data; // yyyy-mm-dd
+    if(txData){
+      d.Data=txData;
+      var pts=txData.split('-');
+      d.Ano=parseInt(pts[0]);d.Mês=parseInt(pts[1]);
+    }
+  }
   c.status='aprovado';
   salvarLocal();
   showToast('✅ Vínculo confirmado — lançamento marcado como recebido/pago','#27ae60',3000);
