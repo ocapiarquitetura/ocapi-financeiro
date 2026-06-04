@@ -1692,18 +1692,6 @@ function rendAdmin(){
     showToast('✅ Importações removidas com sucesso','#27ae60',3000);
   };
   limpWrap.appendChild(limpBtn);cont.appendChild(limpWrap);
-  /* Botão de importação temporária */
-  if(typeof importarExtrato==='function'){
-    var impWrap=document.createElement('div');
-    impWrap.style.cssText='margin-top:24px;padding:16px;background:#fffbe6;border:1.5px solid #f0d060;border-radius:10px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap';
-    impWrap.innerHTML='<div><strong style="font-size:13px">📥 Importar Extrato Inter (Jan–Jun 2026)</strong><br><span style="font-size:12px;color:#666">62 lançamentos · Detecta duplicados automaticamente</span></div>';
-    var impBtn=document.createElement('button');
-    impBtn.className='btn btn-dark';
-    impBtn.textContent='Importar agora';
-    impBtn.onclick=function(){if(confirm('Importar lançamentos do extrato? Duplicados serão ignorados.')){importarExtrato();}};
-    impWrap.appendChild(impBtn);
-    cont.appendChild(impWrap);
-  }
 }
 function renderAdmList(cont,vn,arr,label){
   var q=admSearch.toLowerCase();
