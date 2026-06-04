@@ -494,7 +494,7 @@ tr.row-pago td{opacity:.75}
         </div>
         <div class="parc-section">
           <div class="form-row">
-            <div class="fld"><label>Data Parcela 1</label><input type="date" id="d-data-1"></div>
+            <div class="fld"><label>Data de Movimentação - Parcela 1</label><input type="date" id="d-data-1"></div>
             <div class="fld"><label>Valor Parcela 1 (R$)</label><input type="number" id="d-valor-1" placeholder="0,00" step="0.01" min="0"></div>
           </div>
           <div id="d-parc-extra"></div>
@@ -536,7 +536,7 @@ tr.row-pago td{opacity:.75}
       <div style="overflow-x:auto">
       <table><thead><tr>
         <th style="width:32px;text-align:center"><input type="checkbox" id="h-sel-all" title="Selecionar todos" onchange="toggleSelAll(this.checked)" style="cursor:pointer;width:14px;height:14px"></th>
-        <th id="h-th-Data" onclick="setHSort('Data')">Data <span class="sort-arrow">↓</span></th><th id="h-th-Tipo" onclick="setHSort('Tipo')">Tipo <span class="sort-arrow">↕</span></th><th id="h-th-Origem" onclick="setHSort('Origem')">Origem <span class="sort-arrow">↕</span></th><th id="h-th-Cliente" onclick="setHSort('Cliente')">Cliente <span class="sort-arrow">↕</span></th><th id="h-th-RT" onclick="setHSort('RT')">RT <span class="sort-arrow">↕</span></th><th id="h-th-Despesa" onclick="setHSort('Despesa')">Despesa <span class="sort-arrow">↕</span></th><th id="h-th-Parcela" onclick="setHSort('Parcela')">Parcela <span class="sort-arrow">↕</span></th><th id="h-th-Valor" onclick="setHSort('Valor')">Valor <span class="sort-arrow">↕</span></th>
+        <th id="h-th-DataLanc" onclick="setHSort('DataLanc')" title="Data de Lançamento">Lan&ccedil;amento <span class="sort-arrow">↕</span></th><th id="h-th-Data" onclick="setHSort('Data')" title="Data de Movimentação Financeira">Movimenta&ccedil;&atilde;o <span class="sort-arrow">↓</span></th><th id="h-th-Tipo" onclick="setHSort('Tipo')">Tipo <span class="sort-arrow">↕</span></th><th id="h-th-Origem" onclick="setHSort('Origem')">Origem <span class="sort-arrow">↕</span></th><th id="h-th-Cliente" onclick="setHSort('Cliente')">Cliente <span class="sort-arrow">↕</span></th><th id="h-th-RT" onclick="setHSort('RT')">RT <span class="sort-arrow">↕</span></th><th id="h-th-Despesa" onclick="setHSort('Despesa')">Despesa <span class="sort-arrow">↕</span></th><th id="h-th-Parcela" onclick="setHSort('Parcela')">Parcela <span class="sort-arrow">↕</span></th><th id="h-th-Valor" onclick="setHSort('Valor')">Valor <span class="sort-arrow">↕</span></th>
         <th id="h-th-Pago" onclick="setHSort('Pago')" title="Pagamento confirmado">Pago <span class="sort-arrow">↕</span></th>
         <th id="h-th-NF" onclick="setHSort('NF')">NF <span class="sort-arrow">↕</span></th>
         <th id="h-th-NFem" onclick="setHSort('NFem')" title="NF emitida">NF &#10003; <span class="sort-arrow">↕</span></th>
@@ -809,7 +809,7 @@ tr.row-pago td{opacity:.75}
           <option value="1">1x &agrave; vista</option><option value="2">2x</option><option value="3">3x</option><option value="4">4x</option><option value="5">5x</option><option value="6">6x</option>
         </select>
       </div>
-      <div class="mob-fld"><label>Data Parcela 1</label><input type="date" id="m-data-1"></div>
+      <div class="mob-fld"><label>Data de Movimentação - Parcela 1</label><input type="date" id="m-data-1"></div>
       <div class="mob-fld"><label>Valor Parcela 1 (R$)</label><input type="number" id="m-valor-1" placeholder="0,00" step="0.01" min="0" inputmode="decimal"></div>
       <div id="m-parc-extra"></div>
       <div class="mob-fld">
@@ -985,7 +985,7 @@ function updDParcelas(){
   var d1=R('d-data-1').value||today();
   for(var i=2;i<=n;i++){
     var d0=add30(d1,i-1);var div=document.createElement('div');div.className='form-row';
-    div.innerHTML='<div class="fld"><label>Data Parcela '+i+'</label><input type="date" id="d-data-'+i+'" value="'+d0+'"></div><div class="fld"><label>Valor Parcela '+i+' (R$)</label><input type="number" id="d-valor-'+i+'" placeholder="0,00" step="0.01" min="0"></div>';
+    div.innerHTML='<div class="fld"><label>Data de Movimentação - Parcela '+i+'</label><input type="date" id="d-data-'+i+'" value="'+d0+'"></div><div class="fld"><label>Valor Parcela '+i+' (R$)</label><input type="number" id="d-valor-'+i+'" placeholder="0,00" step="0.01" min="0"></div>';
     cont.appendChild(div);
   }
 }
@@ -1003,7 +1003,7 @@ function saveD(){
       Cliente:dType==='entrada'?(R('d-cliente').value||''):'',
       Fornecedor:dType==='entrada'?eRT:'',
       Despesa:dType==='saida'?(R('d-desp').value||''):'',
-      Valor:val,Data:dt,Mês:parts[1]?parseInt(parts[1]):'',Ano:parts[0]?parseInt(parts[0]):'',
+      Valor:val,Data:dt,DataLanc:today(),Mês:parts[1]?parseInt(parts[1]):'',Ano:parts[0]?parseInt(parts[0]):'',
       'Nota Fiscal':dNF,obs:'',Parcela:n>1?(('0'+i).slice(-2)+'-'+('0'+n).slice(-2)):'',pago:false,nf_emitida:false,_new:true,_ts:Date.now()});
   }
   salvarLocal();alert(n>1?n+'x lançado!':'Salvo!');clearD();rendAll();
@@ -1029,7 +1029,7 @@ function updMNParcelas(){
   var d1val=(R('m-data-1')?R('m-data-1').value:null)||today();
   for(var i=2;i<=n;i++){
     var d0=add30(d1val,i-1);var div=document.createElement('div');div.style.marginBottom='10px';
-    div.innerHTML='<div class="mob-fld"><label>Data Parcela '+i+'</label><input type="date" id="m-data-'+i+'" value="'+d0+'" style="width:100%;padding:12px 13px;border:1.5px solid #e0e0e0;border-radius:10px;font-size:15px;background:#fafafa;outline:none"></div><div class="mob-fld"><label>Valor Parcela '+i+' (R$)</label><input type="number" id="m-valor-'+i+'" placeholder="0,00" step="0.01" min="0" inputmode="decimal" style="width:100%;padding:12px 13px;border:1.5px solid #e0e0e0;border-radius:10px;font-size:15px;background:#fafafa;outline:none"></div>';
+    div.innerHTML='<div class="mob-fld"><label>Data de Movimentação - Parcela '+i+'</label><input type="date" id="m-data-'+i+'" value="'+d0+'" style="width:100%;padding:12px 13px;border:1.5px solid #e0e0e0;border-radius:10px;font-size:15px;background:#fafafa;outline:none"></div><div class="mob-fld"><label>Valor Parcela '+i+' (R$)</label><input type="number" id="m-valor-'+i+'" placeholder="0,00" step="0.01" min="0" inputmode="decimal" style="width:100%;padding:12px 13px;border:1.5px solid #e0e0e0;border-radius:10px;font-size:15px;background:#fafafa;outline:none"></div>';
     cont.appendChild(div);
   }
 }
@@ -1047,7 +1047,7 @@ function saveM(){
       Cliente:mType==='entrada'?(R('m-cliente').value||''):'',
       Fornecedor:mType==='entrada'?eRT:'',
       Despesa:mType==='saida'?(R('m-desp').value||''):'',
-      Valor:val,Data:dt,Mês:parts[1]?parseInt(parts[1]):'',Ano:parts[0]?parseInt(parts[0]):'',
+      Valor:val,Data:dt,DataLanc:today(),Mês:parts[1]?parseInt(parts[1]):'',Ano:parts[0]?parseInt(parts[0]):'',
       'Nota Fiscal':mNF,obs:'',Parcela:n>1?(('0'+i).slice(-2)+'-'+('0'+n).slice(-2)):'',pago:false,nf_emitida:false,_new:true,_ts:Date.now()});
   }
   salvarLocal();
@@ -1457,6 +1457,7 @@ function rendHist(){
     var obsVal=(r.obs||'').replace(/"/g,'&quot;');
     tr.innerHTML=
       '<td style="width:32px;text-align:center"><input type="checkbox" class="h-row-chk" data-ri="'+ri+'" style="cursor:pointer;width:14px;height:14px" '+(hSelected.has(ri)?'checked':'')+' onchange="toggleSelRow('+ri+',this.checked)"></td>'+
+      '<td style="white-space:nowrap;color:#aaa;font-size:12px">'+(r.DataLanc?fmtDate(r.DataLanc):'—')+'</td>'+
       '<td style="white-space:nowrap">'+fmtDate(r.Data)+'</td>'+
       '<td><span class="badge badge-'+(isE?'in':'out')+'">'+(isE?'Entrada':'Saída')+'</span></td>'+
       '<td>'+(r.Origem||'—')+'</td>'+
@@ -1484,7 +1485,7 @@ function rendHist(){
     body.appendChild(tr);
   });
   // Update sort indicators
-  ['Data','Tipo','Origem','Cliente','RT','Despesa','Parcela','Valor','Pago','NF','NFem','Obs'].forEach(function(c){
+  ['DataLanc','Data','Tipo','Origem','Cliente','RT','Despesa','Parcela','Valor','Pago','NF','NFem','Obs'].forEach(function(c){
     var el=document.getElementById('h-th-'+c);if(!el)return;
     var arrow=el.querySelector('.sort-arrow');if(!arrow)return;
     arrow.textContent=(hSortCol===c)?(hSortDir===1?'↑':'↓'):'↕';
@@ -1674,6 +1675,23 @@ function rendAdmin(){
   else if(aTab==='aliases')renderAdmAliases(cont);
   /* restore focus to search input */
   if(admSearch){var el=cont.querySelector('input[placeholder="Buscar…"]');if(el){el.focus();var len=el.value.length;el.setSelectionRange(len,len);}}
+  /* Botão limpar importações */
+  var limpWrap=document.createElement('div');
+  limpWrap.style.cssText='margin-top:24px;padding:16px;background:#fef5f5;border:1.5px solid #f5c6c6;border-radius:10px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap';
+  var importCount=dados.filter(function(d){return d.fonte_import;}).length;
+  limpWrap.innerHTML='<div><strong style="font-size:13px">🗑️ Limpar lançamentos importados do extrato</strong><br><span style="font-size:12px;color:#666">'+importCount+' lançamento(s) com origem em extrato bancário</span></div>';
+  var limpBtn=document.createElement('button');
+  limpBtn.textContent='Limpar importações';
+  limpBtn.style.cssText='padding:9px 18px;background:#c0392b;color:#fff;border:none;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap';
+  limpBtn.onclick=function(){
+    if(importCount===0){showToast('Nenhum lançamento importado encontrado','#e67e22');return;}
+    if(!confirm('Remover '+importCount+' lançamento(s) importados do extrato? Esta ação não pode ser desfeita.'))return;
+    dados=dados.filter(function(d){return !d.fonte_import;});
+    conciliacoes=[];
+    salvarLocal();rendAdmin();rendAll();
+    showToast('✅ Importações removidas com sucesso','#27ae60',3000);
+  };
+  limpWrap.appendChild(limpBtn);cont.appendChild(limpWrap);
   /* Botão de importação temporária */
   if(typeof importarExtrato==='function'){
     var impWrap=document.createElement('div');
@@ -2795,8 +2813,8 @@ function concilMatchScore(tx, d, dIdx){
     var dp = d.Data.split('/');
     var dDate = new Date(dp[2]+'-'+dp[1]+'-'+dp[0]+'T12:00:00');
     var dayDiff = Math.abs((txDate - dDate)/86400000);
-    if(dayDiff <= 7) score += Math.round(30 - dayDiff*4);
-    else return 0; // fora da janela de 7 dias
+    if(dayDiff <= 30) score += Math.round(30 - dayDiff);
+    else return 0; // fora da janela de 30 dias
   }
   // Nome (via aliases)
   var txNome = concilNomeNormalizado(tx.cliente || tx.rt || tx.descricao || '');
@@ -2863,6 +2881,34 @@ function impConfirmarImport(){
     }
   });
 
+  // Sugestões de aliases
+  var aliasSugestoes = [];
+  impTxs.filter(function(t){return !t.excluida;}).forEach(function(tx){
+    var nomeExt = (tx.cliente||tx.rt||tx.descricao||'').trim().toUpperCase();
+    if(!nomeExt) return;
+    // Já tem alias?
+    if(ALIASES.some(function(a){return a.extrato.toUpperCase()===nomeExt;})) return;
+    // Busca nome parecido em CLI_HON e RT_EMPRESAS
+    var allNomes = CLI_HON.concat(RT_EMPRESAS);
+    var melhor=null, melhorScore=0;
+    allNomes.forEach(function(n){
+      var nu = n.toUpperCase();
+      // Score: palavras em comum
+      var wordsExt = nomeExt.split(/\s+/);
+      var wordsN = nu.split(/\s+/);
+      var comuns = wordsExt.filter(function(w){return w.length>3&&wordsN.indexOf(w)>=0;}).length;
+      if(comuns>melhorScore||(comuns===melhorScore&&comuns>0&&nu.indexOf(nomeExt)>=0)){
+        melhorScore=comuns;melhor=n;
+      }
+    });
+    if(melhor&&melhorScore>0&&melhor.toUpperCase()!==nomeExt){
+      // Evitar duplicatas na lista de sugestões
+      if(!aliasSugestoes.some(function(s){return s.extrato===nomeExt;})){
+        aliasSugestoes.push({extrato:nomeExt, sistema:melhor});
+      }
+    }
+  });
+
   salvarLocal();
   atualizarConcilBadge();
   R('imp-step2').style.display='none';
@@ -2873,7 +2919,43 @@ function impConfirmarImport(){
   var sub = 'Lançamentos diretos disponíveis em Controle.';
   if(paraConcilar>0) sub += ' Acesse Conciliação na barra lateral para revisar os vínculos.';
   R('imp-done-sub').textContent = sub;
-  showToast('✅ '+importados+' importados'+(paraConcilar?' · ⏳ '+paraConcilar+' para conciliar':''),'#27ae60',5000);
+
+  // Mostrar sugestões de alias se houver
+  if(aliasSugestoes.length>0){
+    var step3=R('imp-step3');
+    var aliasDiv=document.createElement('div');
+    aliasDiv.style.cssText='margin-top:24px;background:#fff;border-radius:12px;border:1.5px solid var(--bord);padding:20px';
+    var aliasH='<div style="font-size:13px;font-weight:700;margin-bottom:14px">💡 Sugestões de Alias detectadas</div>'
+      +'<p style="font-size:12px;color:#888;margin-bottom:14px">O sistema encontrou nomes no extrato que parecem corresponder a nomes cadastrados. Confirme os vínculos que fizerem sentido:</p>'
+      +'<div id="alias-sug-list">';
+    aliasSugestoes.forEach(function(s,si){
+      aliasH+='<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f5f5f5;flex-wrap:wrap">'
+        +'<span style="font-size:12px;font-weight:600;color:#c0392b;min-width:180px">'+s.extrato+'</span>'
+        +'<span style="color:#aaa">→</span>'
+        +'<span style="font-size:12px;color:#27ae60;flex:1">'+s.sistema+'</span>'
+        +'<button onclick="aliasConfirmar('+si+',\''+s.extrato.replace(/'/g,"\\'")+'\')" style="padding:6px 14px;background:#27ae60;color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer">✓ Confirmar</button>'
+        +'<button onclick="this.parentElement.remove()" style="padding:6px 10px;background:#f5f5f5;border:none;border-radius:7px;font-size:12px;cursor:pointer;color:#888">✗</button>'
+        +'</div>';
+    });
+    aliasH+='</div>';
+    aliasDiv.innerHTML=aliasH;
+    step3.appendChild(aliasDiv);
+    window._aliasSugestoes=aliasSugestoes;
+  }
+
+  showToast('✅ '+importados+' importados'+(paraConcilar?' · ⏳ '+paraConcilar+' para conciliar':'')+(aliasSugestoes.length?' · 💡 '+aliasSugestoes.length+' aliases sugeridos':''),'#27ae60',5000);
+}
+function aliasConfirmar(si, extrato){
+  var sug = window._aliasSugestoes && window._aliasSugestoes[si];
+  if(!sug) return;
+  if(!ALIASES.some(function(a){return a.extrato.toUpperCase()===sug.extrato.toUpperCase();})){
+    ALIASES.push({extrato:sug.extrato, sistema:sug.sistema});
+    salvarLocal();
+    showToast('Alias adicionado: '+sug.extrato+' → '+sug.sistema,'#27ae60',3000);
+  }
+  // Remove o item da lista visual
+  var list=R('alias-sug-list');
+  if(list){var items=list.querySelectorAll('div');if(items[si])items[si].remove();}
 }
 // ── Badge de conciliação ──
 function atualizarConcilBadge(){
