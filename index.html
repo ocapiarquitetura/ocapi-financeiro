@@ -3196,7 +3196,7 @@ function rendConcil(){
       // Cabeçalho
       +'<div style="background:#f7f7f7;padding:12px 20px;border-bottom:1px solid #eee;display:flex;align-items:center;gap:10px">'
       +'<span style="font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#aaa">Vínculo sugerido</span>'
-      +'<span style="background:#fff3e0;color:#e67e22;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px">Score: '+c.score+'</span>'
+      +(c.score===999?'<span style="background:#e8f4fd;color:#3498db;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px">✋ Manual</span>':'<span style="background:#fff3e0;color:#e67e22;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px">Score: '+c.score+'</span>')
       +'</div>'
       // Corpo 2 colunas
       +'<div style="display:grid;grid-template-columns:1fr 40px 1fr;gap:0;align-items:center">'
@@ -3221,6 +3221,13 @@ function rendConcil(){
       +'<span style="font-size:12px;color:#aaa;align-self:center">'+(md.Data||'')+'</span>'
       +'</div></div>'
       +'</div>'
+      // Busca manual de vínculo
+      +'<div style="padding:0 20px 14px">'
+      +'<button onclick="concilToggleBusca('+ci+')" id="btn-busca-'+ci+'" style="background:none;border:none;font-size:12px;color:#3498db;cursor:pointer;padding:0;font-weight:600">🔍 Trocar vínculo manualmente</button>'
+      +'<div id="busca-'+ci+'" style="display:none;margin-top:10px">'
+      +'<input type="text" placeholder="Buscar por nome, valor ou data..." oninput="concilBuscaFiltrar('+ci+',this.value)" style="width:100%;box-sizing:border-box;border:1.5px solid #ddd;border-radius:8px;padding:8px 12px;font-size:12px;outline:none;margin-bottom:8px">'
+      +'<div id="busca-res-'+ci+'" style="max-height:180px;overflow-y:auto;border:1px solid #eee;border-radius:8px;display:none"></div>'
+      +'</div></div>'
       // Ações
       +'<div style="padding:14px 20px;border-top:1px solid #f0f0f0;display:flex;gap:10px;justify-content:flex-end">'
       +'<button onclick="concilRejeitar('+ci+')" style="padding:9px 20px;border-radius:9px;border:1.5px solid #ddd;background:#fff;font-size:13px;font-weight:600;cursor:pointer;color:#666">✗ Rejeitar — importar como novo</button>'
@@ -3230,6 +3237,59 @@ function rendConcil(){
   });
   h += '</div>';
   cont.innerHTML=h;
+}
+function concilToggleBusca(ci){
+  var el = R('busca-'+ci); if(!el) return;
+  var aberto = el.style.display !== 'none';
+  el.style.display = aberto ? 'none' : 'block';
+  if(!aberto){
+    var inp = el.querySelector('input'); if(inp){ inp.value=''; inp.focus(); }
+    concilBuscaFiltrar(ci, '');
+  }
+}
+function concilBuscaFiltrar(ci, q){
+  var res = R('busca-res-'+ci); if(!res) return;
+  q = (q||'').trim().toLowerCase();
+  var c = conciliacoes[ci]; if(!c) return;
+  var candidatos = dados.map(function(d,i){return {d:d,i:i};}).filter(function(o){
+    var d = o.d;
+    if(d.fonte_import) return false;
+    if(d.conciliado) return false;
+    if(d['Movimentação'] !== c.tx.tipo) return false;
+    if(!q) return true;
+    var nome = (d.Cliente||d.RT||d.Descrição||'').toLowerCase();
+    var val = String(d.Valor||'').replace(',','.');
+    var data = fmtDate(d.Data||'').toLowerCase();
+    return nome.indexOf(q)>=0 || val.indexOf(q)>=0 || data.indexOf(q)>=0;
+  }).slice(0,30);
+  if(!candidatos.length){
+    res.style.display = 'block';
+    res.innerHTML = '<div style="padding:10px 12px;font-size:12px;color:#aaa">Nenhum lançamento encontrado</div>';
+    return;
+  }
+  res.style.display = 'block';
+  res.innerHTML = candidatos.map(function(o){
+    var d = o.d;
+    var nome = d.Cliente||d.RT||d.Descrição||'—';
+    var val = 'R$ '+(parseFloat(String(d.Valor||0).replace(',','.'))||0).toLocaleString('pt-BR',{minimumFractionDigits:2});
+    var cor = d['Movimentação']==='Entrada'?'#27ae60':'#c0392b';
+    return '<div onclick="concilTrocarMatch('+ci+','+o.i+')" style="padding:9px 12px;border-bottom:1px solid #f5f5f5;cursor:pointer;display:flex;gap:10px;align-items:center"'
+      +' onmouseover="this.style.background=\'#f0f9f4\'" onmouseout="this.style.background=\'\'">'
+      +'<span style="font-size:12px;font-weight:700;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+nome+'</span>'
+      +'<span style="font-size:12px;font-weight:800;color:'+cor+'">'+val+'</span>'
+      +'<span style="font-size:11px;color:#aaa;white-space:nowrap">'+fmtDate(d.Data||'')+'</span>'
+      +'</div>';
+  }).join('');
+}
+function concilTrocarMatch(ci, dadoIdx){
+  var c = conciliacoes[ci]; if(!c) return;
+  var novo = dados[dadoIdx]; if(!novo) return;
+  c.matchIdx = dadoIdx;
+  c.matchData = novo;
+  c.score = 999; // match manual — pontuação especial
+  salvarLocal();
+  rendConcil();
+  showToast('Vínculo atualizado — confira e confirme','#3498db',2500);
 }
 function concilBuscarDado(c){
   // 1. Tenta pelo índice salvo (caminho rápido)
