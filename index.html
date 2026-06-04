@@ -2619,7 +2619,7 @@ function impAplicarSugestoes(){
 function impDeduplicar(){
   impTxs.forEach(function(tx){
     var dup = dados.some(function(d){
-      return d.Data === tx.data.split('-').reverse().join('/') &&
+      return d.Data === tx.data &&
              Math.abs((parseFloat(d.Valor)||0) - tx.valor) < 0.01;
     });
     if(dup){
@@ -2848,6 +2848,19 @@ function concilNomeNormalizado(nome){
   }
   return n;
 }
+function concilParseDate(dataStr){
+  if(!dataStr) return null;
+  var d;
+  if(dataStr.indexOf('/')>=0){
+    // DD/MM/YYYY
+    var dp=dataStr.split('/');
+    d=new Date((dp[2]||'')+ '-'+(dp[1]||'')+'-'+(dp[0]||'')+'T12:00:00');
+  } else {
+    // YYYY-MM-DD (ISO)
+    d=new Date(dataStr+'T12:00:00');
+  }
+  return isNaN(d.getTime())?null:d;
+}
 function concilMatchScore(tx, d, dIdx){
   // Só compara movimentações do mesmo tipo
   if(tx.tipo !== d.Movimentação) return 0;
@@ -2861,11 +2874,10 @@ function concilMatchScore(tx, d, dIdx){
   if(diff < 0.01) score += 50; // exato
   else if(dVal > 0 && diff/dVal < 0.05) score += 25; // ±5%
   else return 0; // valor muito diferente — não é match
-  // Data (±7 dias)
+  // Data (±30 dias) — obrigatório quando d.Data existe; sem data exige nome
   var txDate = new Date(tx.data+'T12:00:00');
-  if(d.Data){
-    var dp = d.Data.split('/');
-    var dDate = new Date(dp[2]+'-'+dp[1]+'-'+dp[0]+'T12:00:00');
+  var dDate = concilParseDate(d.Data);
+  if(dDate){
     var dayDiff = Math.abs((txDate - dDate)/86400000);
     if(dayDiff <= 30) score += Math.round(30 - dayDiff);
     else return 0; // fora da janela de 30 dias
@@ -2873,10 +2885,14 @@ function concilMatchScore(tx, d, dIdx){
   // Nome (via aliases)
   var txNome = concilNomeNormalizado(tx.cliente || tx.rt || tx.descricao || '');
   var dNome = concilNomeNormalizado(d.Cliente || d.RT || '');
+  var nomeScore = 0;
   if(txNome && dNome){
-    if(txNome === dNome) score += 20;
-    else if(txNome.indexOf(dNome)>=0 || dNome.indexOf(txNome)>=0) score += 10;
+    if(txNome === dNome) nomeScore = 20;
+    else if(txNome.indexOf(dNome)>=0 || dNome.indexOf(txNome)>=0) nomeScore = 10;
   }
+  score += nomeScore;
+  // Sem data: exige pelo menos match parcial de nome para evitar falso positivo
+  if(!dDate && nomeScore === 0) return 0;
   return score;
 }
 function impConfirmarImport(){
@@ -2886,9 +2902,8 @@ function impConfirmarImport(){
 
   var importados = 0, paraConcilar = 0;
   paraImportar.forEach(function(tx){
-    var dataFmt = tx.data.split('-').reverse().join('/');
-    // 1. Verificar duplicata exata (já importado antes)
-    var dup = dados.some(function(d){ return d.Data===dataFmt && Math.abs((parseFloat(String(d.Valor||0).replace(',','.'))||0)-tx.valor)<0.01 && d.Movimentação===tx.tipo && d.fonte_import; });
+    // 1. Verificar duplicata exata (já importado antes) — usa formato ISO consistente
+    var dup = dados.some(function(d){ return d.Data===tx.data && Math.abs((parseFloat(String(d.Valor||0).replace(',','.'))||0)-tx.valor)<0.01 && d.Movimentação===tx.tipo && d.fonte_import; });
     if(dup){ return; }
 
     // 2. Buscar melhor match nos dados existentes
@@ -2903,11 +2918,11 @@ function impConfirmarImport(){
       conciliacoes.push({tx:tx, matchIdx:bestIdx, matchData:dados[bestIdx], score:bestScore, status:'pendente', ts:Date.now()});
       paraConcilar++;
     } else {
-      // Entra direto no sistema
+      // Entra direto no sistema — Data em formato ISO (YYYY-MM-DD)
       var ano = parseInt(tx.data.split('-')[0]);
       var mes = parseInt(tx.data.split('-')[1]);
       var novo = {
-        Data: dataFmt, Ano: ano, Mês: mes,
+        Data: tx.data, Ano: ano, Mês: mes,
         Descrição: tx.descricao,
         Valor: String(tx.valor).replace('.',','),
         Movimentação: tx.tipo,
@@ -3107,10 +3122,10 @@ function concilAprovar(ci){
     // Guardar estado original para poder desfazer no Limpar
     c.original={Data:d.Data,Ano:d.Ano,Mês:d.Mês,pago:d.pago,conciliado:d.conciliado,conciliado_em:d.conciliado_em};
     d.conciliado=true; d.conciliado_em=new Date().toISOString().slice(0,10); d.pago=true;
-    // Atualiza Data de Movimentação com a data real do extrato (formato DD/MM/YYYY)
+    // Atualiza Data de Movimentação com a data real do extrato (mantém YYYY-MM-DD)
     var txData=c.tx.data; // YYYY-MM-DD
     if(txData){
-      d.Data=txData.split('-').reverse().join('/'); // converte para DD/MM/YYYY
+      d.Data=txData; // mantém formato ISO consistente com o restante dos dados
       var pts=txData.split('-');
       d.Ano=parseInt(pts[0]); d.Mês=parseInt(pts[1]);
     }
@@ -3133,10 +3148,9 @@ function concilRejeitar(ci){
   var c=conciliacoes[ci]; if(!c||c.status!=='pendente') return;
   // Importar como novo lançamento
   var tx=c.tx;
-  var dataFmt=tx.data.split('-').reverse().join('/');
   var ano=parseInt(tx.data.split('-')[0]),mes=parseInt(tx.data.split('-')[1]);
   dados.push({
-    Data:dataFmt,Ano:ano,Mês:mes,
+    Data:tx.data,Ano:ano,Mês:mes,
     Descrição:tx.descricao,
     Valor:String(tx.valor).replace('.',','),
     Movimentação:tx.tipo,
