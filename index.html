@@ -763,7 +763,10 @@ tr.row-pago td{opacity:.75}
   <div class="sheet-overlay" id="sheet-overlay" onclick="closeSheetOut(event)">
     <div class="sheet">
       <div class="sheet-handle"></div>
-      <div class="sheet-title">Novo Lan&ccedil;amento</div>
+      <div style="display:flex;align-items:center;margin-bottom:14px;gap:10px">
+        <button onclick="R('sheet-overlay').classList.remove('open')" style="background:none;border:none;cursor:pointer;font-size:20px;color:#1a1a1a;padding:0;line-height:1">&#8592;</button>
+        <span style="font-size:16px;font-weight:700;color:#1a1a1a">Novo Lan&ccedil;amento</span>
+      </div>
       <div class="mob-type-toggle" style="display:flex;gap:8px;margin-bottom:14px">
         <button id="m-btn-in" class="act-in" onclick="setMType('entrada')">&#8593; Entrada</button>
         <button id="m-btn-out" onclick="setMType('saida')" style="color:var(--red)">&#8595; Sa&iacute;da</button>
