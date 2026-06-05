@@ -1444,7 +1444,10 @@ function _updStatToggle(){
   Object.keys(map).forEach(function(k){var b=R(map[k]);if(b)b.style.cssText='padding:7px 14px;border:none;font-size:12px;font-weight:700;cursor:pointer;'+(hFutFilt===k?ativ:inativ);});
 }
 function setHMovFilt(v){
-  hMovFilt=v; _updTipoToggle(); rendHist();
+  hMovFilt=v; _updTipoToggle();
+  var th=R('h-th-Cliente');
+  if(th) th.innerHTML=(v==='Entrada'?'Cliente':'Despesa')+' <span class="sort-arrow">↕</span>';
+  rendHist();
 }
 function setHFutFilt(v){
   hFutFilt=v; _updStatToggle(); rendHist();
