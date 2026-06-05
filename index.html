@@ -1507,7 +1507,7 @@ function rendHist(){
       '<td><span class="badge badge-'+(isE?'in':'out')+'">'+(isE?'Entrada':'Saída')+'</span></td>'+
       '<td>'+(r.Origem||'—')+'</td>'+
       '<td>'+(r.Cliente||r.Despesa||'—')+'</td>'+
-      '<td>'+(r.RT||'—')+'</td>'+
+      '<td>'+(r.Fornecedor||'—')+'</td>'+
       '<td style="white-space:nowrap">'+(r.Parcela||'—')+'</td>'+
       '<td style="font-weight:700;color:'+(isE?'#27ae60':'#c0392b')+'">'+fmt(r.Valor)+'</td>'+
       '<td style="text-align:center"><button class="chk-btn pago-btn'+(isPago?' on':'')+'" data-ri="'+ri+'" title="Confirmar pagamento">'+(isPago?'&#10003;':'')+'</button></td>'+
@@ -2612,7 +2612,7 @@ function impAplicarSugestoes(){
       // Verifica histórico
       var histEnt = dados.filter(function(d){
         if(d['Movimentação']!=='Entrada') return false;
-        var dDesc = (d.Cliente||d.RT||d.Descrição||'').toUpperCase();
+        var dDesc = (d.Cliente||d.Fornecedor||d.Descrição||'').toUpperCase();
         return dDesc && dDesc.length>3 && descUp.indexOf(dDesc)>=0;
       });
       if(histEnt.length){
@@ -2923,7 +2923,7 @@ function concilMatchScore(tx, d, dIdx){
   }
   // Nome (via aliases)
   var txNome = concilNomeNormalizado(tx.cliente || tx.rt || tx.descricao || '');
-  var dNome = concilNomeNormalizado(d.Cliente || d.RT || '');
+  var dNome = concilNomeNormalizado(d.Cliente || d.Fornecedor || '');
   var nomeScore = 0;
   if(txNome && dNome){
     if(txNome === dNome) nomeScore = 20;
@@ -3266,7 +3266,7 @@ function rendConcil(){
     var mdVal=parseFloat(String(md.Valor||0).replace(',','.'))||0;
     var mdValFmt='R$ '+mdVal.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
     var txNome=tx.cliente||tx.rt||tx.descricao||'';
-    var mdNome=md.Cliente||md.RT||md.Descrição||'';
+    var mdNome=md.Cliente||md.Fornecedor||md.Descrição||'';
     var tipoCor=tx.tipo==='Entrada'?'#27ae60':'#c0392b';
     var mdDataFmt = md.Data ? md.Data.split('-').reverse().join('/') : '—';
     h += '<div style="background:#fff;border-radius:12px;border:1.5px solid #e8e8e8;overflow:hidden;margin-bottom:0">'
@@ -3308,7 +3308,7 @@ function rendConcil(){
       +'<input id="cedit-nome-'+ci+'" type="text" value="'+(md.Cliente||'').replace(/"/g,'&quot;')+'" list="cedit-nome-list-'+ci+'" placeholder="Nome do cliente..." style="width:100%;box-sizing:border-box;padding:6px 10px;border:1.5px solid #e0e0e0;border-radius:7px;font-size:12px">'
       +'<datalist id="cedit-nome-list-'+ci+'">'+CLI_HON.map(function(n){return '<option value="'+n.replace(/"/g,'&quot;')+'"></option>';}).join('')+'</datalist></div>'
       +'<div><label style="font-size:10px;color:#aaa;font-weight:700;display:block;margin-bottom:3px">EMPRESA RT</label>'
-      +'<input id="cedit-rt-'+ci+'" type="text" value="'+(md.RT||'').replace(/"/g,'&quot;')+'" list="cedit-rt-list-'+ci+'" placeholder="Empresa RT..." style="width:100%;box-sizing:border-box;padding:6px 10px;border:1.5px solid #e0e0e0;border-radius:7px;font-size:12px">'
+      +'<input id="cedit-rt-'+ci+'" type="text" value="'+(md.Fornecedor||'').replace(/"/g,'&quot;')+'" list="cedit-rt-list-'+ci+'" placeholder="Empresa RT..." style="width:100%;box-sizing:border-box;padding:6px 10px;border:1.5px solid #e0e0e0;border-radius:7px;font-size:12px">'
       +'<datalist id="cedit-rt-list-'+ci+'">'+RT_EMPRESAS.map(function(n){return '<option value="'+n.replace(/"/g,'&quot;')+'"></option>';}).join('')+'</datalist></div>'
       +'<div><label style="font-size:10px;color:#aaa;font-weight:700;display:block;margin-bottom:3px">NOTA FISCAL</label>'
       +'<div style="display:flex;gap:5px">'
@@ -3365,8 +3365,8 @@ function concilEditSalvar(ci){
   var valI  = R('cedit-val-'+ci);
   var panel = R('concil-edit-'+ci);
   var nf    = (panel && panel.dataset.nf) || d.NF || 'Não';
-  if(nomeI) d.Cliente = nomeI.value.trim();
-  if(rtI)   d.RT      = rtI.value.trim();
+  if(nomeI) d.Cliente    = nomeI.value.trim();
+  if(rtI)   d.Fornecedor = rtI.value.trim();
   if(orig){
     var novaOrigem = orig.value;
     d.Origem = novaOrigem;
@@ -3422,10 +3422,10 @@ function concilAprovar(ci){
         d.Ano=parseInt(pts[0]); d.Mês=parseInt(pts[1]);
       }
       var txNomeAlias=(c.tx.descricao||'').trim().toUpperCase();
-      var sysNomeAlias=(d.Cliente||d.RT||d.Descrição||'').trim().toUpperCase();
+      var sysNomeAlias=(d.Cliente||d.Fornecedor||d.Descrição||'').trim().toUpperCase();
       if(txNomeAlias && sysNomeAlias && txNomeAlias!==sysNomeAlias){
         var aliasJaExiste=ALIASES.some(function(a){return a.extrato.toUpperCase()===txNomeAlias;});
-        if(!aliasJaExiste) ALIASES.push({extrato:c.tx.descricao.trim(), sistema:d.Cliente||d.RT||d.Descrição||''});
+        if(!aliasJaExiste) ALIASES.push({extrato:c.tx.descricao.trim(), sistema:d.Cliente||d.Fornecedor||d.Descrição||''});
       }
     }
     c.status='aprovado';
