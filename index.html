@@ -3407,34 +3407,35 @@ function concilBuscarDado(c){
   return null;
 }
 function concilAprovar(ci){
-  var c=conciliacoes[ci]; if(!c||c.status!=='pendente') return;
-  var found = concilBuscarDado(c);
-  var d = found ? found.d : null;
-  if(d){
-    // Guardar estado original para poder desfazer no Limpar
-    c.original={Data:d.Data,Ano:d.Ano,Mês:d.Mês,pago:d.pago,conciliado:d.conciliado,conciliado_em:d.conciliado_em};
-    d.conciliado=true; d.conciliado_em=new Date().toISOString().slice(0,10); d.pago=true;
-    // Atualiza Data de Movimentação com a data real do extrato (mantém YYYY-MM-DD)
-    var txData=c.tx.data; // YYYY-MM-DD
-    if(txData){
-      d.Data=txData; // mantém formato ISO consistente com o restante dos dados
-      var pts=txData.split('-');
-      d.Ano=parseInt(pts[0]); d.Mês=parseInt(pts[1]);
-    }
-    // Auto-salvar alias se nomes diferem
-    var txNomeAlias=(c.tx.descricao||'').trim().toUpperCase();
-    var sysNomeAlias=(d.Cliente||d.Descrição||'').trim().toUpperCase();
-    if(txNomeAlias && sysNomeAlias && txNomeAlias!==sysNomeAlias){
-      var aliasJaExiste=ALIASES.some(function(a){return a.extrato.toUpperCase()===txNomeAlias;});
-      if(!aliasJaExiste){
-        ALIASES.push({extrato:c.tx.descricao.trim(), sistema:d.Cliente||d.Descrição||''});
+  try {
+    var c=conciliacoes[ci];
+    if(!c){ showToast('Erro: item não encontrado (idx='+ci+')','#c0392b',4000); return; }
+    if(c.status==='aprovado'){ showToast('Já confirmado','#aaa',2000); rendConcil(); return; }
+    var found = concilBuscarDado(c);
+    var d = found ? found.d : null;
+    if(d){
+      c.original={Data:d.Data,Ano:d.Ano,Mês:d.Mês,pago:d.pago,conciliado:d.conciliado,conciliado_em:d.conciliado_em};
+      d.conciliado=true; d.conciliado_em=new Date().toISOString().slice(0,10); d.pago=true;
+      var txData=c.tx.data;
+      if(txData){
+        d.Data=txData;
+        var pts=txData.split('-');
+        d.Ano=parseInt(pts[0]); d.Mês=parseInt(pts[1]);
+      }
+      var txNomeAlias=(c.tx.descricao||'').trim().toUpperCase();
+      var sysNomeAlias=(d.Cliente||d.RT||d.Descrição||'').trim().toUpperCase();
+      if(txNomeAlias && sysNomeAlias && txNomeAlias!==sysNomeAlias){
+        var aliasJaExiste=ALIASES.some(function(a){return a.extrato.toUpperCase()===txNomeAlias;});
+        if(!aliasJaExiste) ALIASES.push({extrato:c.tx.descricao.trim(), sistema:d.Cliente||d.RT||d.Descrição||''});
       }
     }
+    c.status='aprovado';
+    salvarLocal();
+    showToast('✅ Vínculo confirmado','#27ae60',3000);
+    rendConcil();
+  } catch(e) {
+    showToast('Erro ao confirmar: '+e.message,'#c0392b',5000);
   }
-  c.status='aprovado';
-  salvarLocal();
-  showToast('✅ Vínculo confirmado — lançamento marcado como recebido/pago','#27ae60',3000);
-  rendConcil();
 }
 function concilRejeitar(ci){
   var c=conciliacoes[ci]; if(!c||c.status!=='pendente') return;
