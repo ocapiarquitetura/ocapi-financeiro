@@ -552,6 +552,7 @@ tr.row-pago td{opacity:.75}
         <th id="h-th-Tipo" onclick="setHSort('Tipo')">Tipo <span class="sort-arrow">↕</span></th>
         <th id="h-th-Origem" onclick="setHSort('Origem')">Origem <span class="sort-arrow">↕</span></th>
         <th id="h-th-Cliente" onclick="setHSort('Cliente')">Nome <span class="sort-arrow">↕</span></th>
+        <th id="h-th-RT" onclick="setHSort('RT')">Empresa RT <span class="sort-arrow">↕</span></th>
         <th id="h-th-Parcela" onclick="setHSort('Parcela')">Parcela <span class="sort-arrow">↕</span></th>
         <th id="h-th-Valor" onclick="setHSort('Valor')">Valor <span class="sort-arrow">↕</span></th>
         <th id="h-th-Pago" onclick="setHSort('Pago')" title="Pagamento confirmado">Pago <span class="sort-arrow">↕</span></th>
@@ -1505,7 +1506,8 @@ function rendHist(){
       '<td style="white-space:nowrap">'+fmtDate(r.Data)+'</td>'+
       '<td><span class="badge badge-'+(isE?'in':'out')+'">'+(isE?'Entrada':'Saída')+'</span></td>'+
       '<td>'+(r.Origem||'—')+'</td>'+
-      '<td>'+(r.Cliente||r.RT||r.Despesa||'—')+'</td>'+
+      '<td>'+(r.Cliente||r.Despesa||'—')+'</td>'+
+      '<td>'+(r.RT||'—')+'</td>'+
       '<td style="white-space:nowrap">'+(r.Parcela||'—')+'</td>'+
       '<td style="font-weight:700;color:'+(isE?'#27ae60':'#c0392b')+'">'+fmt(r.Valor)+'</td>'+
       '<td style="text-align:center"><button class="chk-btn pago-btn'+(isPago?' on':'')+'" data-ri="'+ri+'" title="Confirmar pagamento">'+(isPago?'&#10003;':'')+'</button></td>'+
@@ -1527,7 +1529,7 @@ function rendHist(){
     body.appendChild(tr);
   });
   // Update sort indicators
-  ['DataLanc','Data','Tipo','Origem','Cliente','Parcela','Valor','Pago','NF','NFem','Obs'].forEach(function(c){
+  ['DataLanc','Data','Tipo','Origem','Cliente','RT','Parcela','Valor','Pago','NF','NFem','Obs'].forEach(function(c){
     var el=document.getElementById('h-th-'+c);if(!el)return;
     var arrow=el.querySelector('.sort-arrow');if(!arrow)return;
     arrow.textContent=(hSortCol===c)?(hSortDir===1?'↑':'↓'):'↕';
@@ -3302,9 +3304,12 @@ function rendConcil(){
       +'<select id="cedit-orig-'+ci+'" onchange="concilEditOrigem('+ci+')" style="width:100%;padding:6px 10px;border:1.5px solid #e0e0e0;border-radius:7px;font-size:12px">'
       +ORIGENS_ENTRADA.concat(ORIGENS_SAIDA).map(function(o){return '<option value="'+o+'"'+(o===(md.Origem||md.Movimentação||'')?'selected':'')+'>'+o+'</option>';}).join('')
       +'</select></div>'
-      +'<div><label style="font-size:10px;color:#aaa;font-weight:700;display:block;margin-bottom:3px">NOME</label>'
-      +'<input id="cedit-nome-'+ci+'" type="text" value="'+mdNome.replace(/"/g,'&quot;')+'" list="cedit-nome-list-'+ci+'" placeholder="Nome..." style="width:100%;box-sizing:border-box;padding:6px 10px;border:1.5px solid #e0e0e0;border-radius:7px;font-size:12px">'
-      +'<datalist id="cedit-nome-list-'+ci+'">'+CLI_HON.concat(RT_EMPRESAS).map(function(n){return '<option value="'+n.replace(/"/g,'&quot;')+'"></option>';}).join('')+'</datalist></div>'
+      +'<div><label style="font-size:10px;color:#aaa;font-weight:700;display:block;margin-bottom:3px">NOME (CLIENTE)</label>'
+      +'<input id="cedit-nome-'+ci+'" type="text" value="'+(md.Cliente||'').replace(/"/g,'&quot;')+'" list="cedit-nome-list-'+ci+'" placeholder="Nome do cliente..." style="width:100%;box-sizing:border-box;padding:6px 10px;border:1.5px solid #e0e0e0;border-radius:7px;font-size:12px">'
+      +'<datalist id="cedit-nome-list-'+ci+'">'+CLI_HON.map(function(n){return '<option value="'+n.replace(/"/g,'&quot;')+'"></option>';}).join('')+'</datalist></div>'
+      +'<div><label style="font-size:10px;color:#aaa;font-weight:700;display:block;margin-bottom:3px">EMPRESA RT</label>'
+      +'<input id="cedit-rt-'+ci+'" type="text" value="'+(md.RT||'').replace(/"/g,'&quot;')+'" list="cedit-rt-list-'+ci+'" placeholder="Empresa RT..." style="width:100%;box-sizing:border-box;padding:6px 10px;border:1.5px solid #e0e0e0;border-radius:7px;font-size:12px">'
+      +'<datalist id="cedit-rt-list-'+ci+'">'+RT_EMPRESAS.map(function(n){return '<option value="'+n.replace(/"/g,'&quot;')+'"></option>';}).join('')+'</datalist></div>'
       +'<div><label style="font-size:10px;color:#aaa;font-weight:700;display:block;margin-bottom:3px">NOTA FISCAL</label>'
       +'<div style="display:flex;gap:5px">'
       +['Não','Sim','A definir'].map(function(nf){var sel=(md.NF||'Não')===nf;return '<button onclick="concilEditNF('+ci+',\''+nf+'\')" id="cedit-nf-'+ci+'-'+nf.replace(/ /g,'_')+'" style="flex:1;padding:5px 4px;border-radius:6px;border:1.5px solid '+(sel?'#1a1a1a':'#e0e0e0')+';background:'+(sel?'#1a1a1a':'#fff')+';color:'+(sel?'#fff':'#666')+';font-size:11px;font-weight:700;cursor:pointer">'+(nf)+'</button>';}).join('')
@@ -3356,23 +3361,17 @@ function concilEditSalvar(ci){
   var d = found.d;
   var orig  = R('cedit-orig-'+ci);
   var nomeI = R('cedit-nome-'+ci);
+  var rtI   = R('cedit-rt-'+ci);
   var valI  = R('cedit-val-'+ci);
   var panel = R('concil-edit-'+ci);
   var nf    = (panel && panel.dataset.nf) || d.NF || 'Não';
+  if(nomeI) d.Cliente = nomeI.value.trim();
+  if(rtI)   d.RT      = rtI.value.trim();
   if(orig){
     var novaOrigem = orig.value;
     d.Origem = novaOrigem;
     d.Movimentação = novaOrigem==='Cliente'||novaOrigem==='RT' ? 'Entrada' : 'Saída';
-    // Limpa campos de nome cruzados
-    if(novaOrigem==='Cliente'){ if(nomeI) d.Cliente=nomeI.value.trim(); d.RT=''; d.Despesa=''; }
-    else if(novaOrigem==='RT'){ if(nomeI) d.RT=nomeI.value.trim(); d.Cliente=''; d.Despesa=''; }
-    else { if(nomeI) d.Despesa=nomeI.value.trim(); d.Cliente=''; d.RT=''; }
-  } else {
-    if(nomeI){
-      if(d.Cliente) d.Cliente=nomeI.value.trim();
-      else if(d.RT) d.RT=nomeI.value.trim();
-      else d.Despesa=nomeI.value.trim();
-    }
+    if(novaOrigem!=='Cliente'&&novaOrigem!=='RT') d.Despesa=(nomeI?nomeI.value.trim():'');
   }
   d.NF = nf;
   if(valI){
