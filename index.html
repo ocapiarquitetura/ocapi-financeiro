@@ -2918,6 +2918,7 @@ function impConfirmarImport(){
   if(!confirm(paraImportar.length+' lançamentos serão processados. Itens sem vínculo entram direto; itens com possível vínculo vão para Conciliação. Continuar?')) return;
 
   var importados = 0, paraConcilar = 0;
+  var _sessaoId = Date.now();
   paraImportar.forEach(function(tx){
     // 1. Verificar duplicata exata (já importado antes) — usa formato ISO consistente
     var dup = dados.some(function(d){ return d.Data===tx.data && Math.abs((parseFloat(String(d.Valor||0).replace(',','.'))||0)-tx.valor)<0.01 && d.Movimentação===tx.tipo && d.fonte_import; });
@@ -2932,7 +2933,7 @@ function impConfirmarImport(){
 
     if(bestScore >= 50 && bestIdx >= 0){
       // Vai para conciliação
-      conciliacoes.push({tx:tx, matchIdx:bestIdx, matchData:dados[bestIdx], score:bestScore, status:'pendente', ts:Date.now()});
+      conciliacoes.push({tx:tx, matchIdx:bestIdx, matchData:dados[bestIdx], score:bestScore, status:'pendente', ts:Date.now(), sessaoId:_sessaoId});
       paraConcilar++;
     } else {
       // Entra direto no sistema — Data em formato ISO (YYYY-MM-DD)
@@ -3032,7 +3033,7 @@ function impConfirmarImport(){
 
   // Registrar sessão no histórico
   var sessao = {
-    id: Date.now(),
+    id: _sessaoId,
     data: today(),
     hora: new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),
     arquivo: window._impArquivoNome || 'Extrato Banco Inter',
@@ -3126,10 +3127,16 @@ function impHistRenomear(si){
 }
 
 function impHistExcluir(si){
-  if(!confirm('Excluir este registro do histórico?')) return;
+  if(!confirm('Excluir este histórico e suas conciliações pendentes?')) return;
+  var sessao = imp_historico[si];
+  if(sessao && sessao.id){
+    // Remove conciliações pendentes desta sessão
+    conciliacoes = conciliacoes.filter(function(c){ return c.sessaoId !== sessao.id || c.status !== 'pendente'; });
+  }
   imp_historico.splice(si,1);
   salvarLocal();
   rendImpHistorico();
+  atualizarConcilBadge();
 }
 
 function impHistToggle(si){
