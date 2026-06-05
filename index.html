@@ -1507,7 +1507,7 @@ function rendHist(){
       '<td><span class="badge badge-'+(isE?'in':'out')+'">'+(isE?'Entrada':'Saída')+'</span></td>'+
       '<td>'+(r.Origem||'—')+'</td>'+
       '<td>'+(r.Cliente||r.Despesa||'—')+'</td>'+
-      '<td>'+(r.Fornecedor||'—')+'</td>'+
+      '<td>'+(r.Fornecedor||r.RT||'—')+'</td>'+
       '<td style="white-space:nowrap">'+(r.Parcela||'—')+'</td>'+
       '<td style="font-weight:700;color:'+(isE?'#27ae60':'#c0392b')+'">'+fmt(r.Valor)+'</td>'+
       '<td style="text-align:center"><button class="chk-btn pago-btn'+(isPago?' on':'')+'" data-ri="'+ri+'" title="Confirmar pagamento">'+(isPago?'&#10003;':'')+'</button></td>'+
@@ -1567,7 +1567,7 @@ function openEdit(ri){
   ORIGENS_SAIDA.forEach(function(o){var op=document.createElement('option');op.value=o;op.textContent=o;if(o===r.Origem)op.selected=true;oss.appendChild(op);});
   // Fill fields
   if(R('em-cliente'))R('em-cliente').value=r.Cliente||'';
-  if(R('em-empresa-rt'))R('em-empresa-rt').value=r.Fornecedor||'';
+  if(R('em-empresa-rt'))R('em-empresa-rt').value=r.Fornecedor||r.RT||'';
   if(R('em-desp'))R('em-desp').value=r.Despesa||'';
   if(R('em-data'))R('em-data').value=r.Data||'';
   if(R('em-valor'))R('em-valor').value=r.Valor||'';
@@ -1590,7 +1590,7 @@ function saveEdit(){
   r['Movimentação']=isE?'Entrada':'Saída';
   r.Origem=isE?(R('em-orig-e').value||r.Origem):(R('em-orig-s').value||r.Origem);
   r.Cliente=isE?(R('em-cliente').value||''):'';
-  r.Fornecedor=isE?(R('em-empresa-rt').value||''):'';
+  r.Fornecedor=isE?(R('em-empresa-rt').value||''):''; delete r.RT;
   r.Despesa=isE?'':(R('em-desp').value||'');
   var dt=R('em-data').value;
   if(dt){r.Data=dt;var pts=dt.split('-');r.Mês=parseInt(pts[1])||r.Mês;r.Ano=parseInt(pts[0])||r.Ano;}
