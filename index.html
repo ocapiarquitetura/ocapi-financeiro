@@ -547,11 +547,18 @@ tr.row-pago td{opacity:.75}
       <div style="overflow-x:auto">
       <table><thead><tr>
         <th style="width:32px;text-align:center"><input type="checkbox" id="h-sel-all" title="Selecionar todos" onchange="toggleSelAll(this.checked)" style="cursor:pointer;width:14px;height:14px"></th>
-        <th id="h-th-DataLanc" onclick="setHSort('DataLanc')" title="Data de Lançamento">Lan&ccedil;amento <span class="sort-arrow">↕</span></th><th id="h-th-Data" onclick="setHSort('Data')" title="Data de Movimentação Financeira">Movimenta&ccedil;&atilde;o <span class="sort-arrow">↓</span></th><th id="h-th-Tipo" onclick="setHSort('Tipo')">Tipo <span class="sort-arrow">↕</span></th><th id="h-th-Origem" onclick="setHSort('Origem')">Origem <span class="sort-arrow">↕</span></th><th id="h-th-Cliente" onclick="setHSort('Cliente')">Cliente <span class="sort-arrow">↕</span></th><th id="h-th-RT" onclick="setHSort('RT')">RT <span class="sort-arrow">↕</span></th><th id="h-th-Despesa" onclick="setHSort('Despesa')">Despesa <span class="sort-arrow">↕</span></th><th id="h-th-Parcela" onclick="setHSort('Parcela')">Parcela <span class="sort-arrow">↕</span></th><th id="h-th-Valor" onclick="setHSort('Valor')">Valor <span class="sort-arrow">↕</span></th>
+        <th id="h-th-DataLanc" onclick="setHSort('DataLanc')" title="Data de Lançamento">Lan&ccedil;amento <span class="sort-arrow">↕</span></th>
+        <th id="h-th-Data" onclick="setHSort('Data')" title="Data de Movimentação Financeira">Movimenta&ccedil;&atilde;o <span class="sort-arrow">↓</span></th>
+        <th id="h-th-Tipo" onclick="setHSort('Tipo')">Tipo <span class="sort-arrow">↕</span></th>
+        <th id="h-th-Origem" onclick="setHSort('Origem')">Origem <span class="sort-arrow">↕</span></th>
+        <th id="h-th-Cliente" onclick="setHSort('Cliente')">Nome <span class="sort-arrow">↕</span></th>
+        <th id="h-th-Parcela" onclick="setHSort('Parcela')">Parcela <span class="sort-arrow">↕</span></th>
+        <th id="h-th-Valor" onclick="setHSort('Valor')">Valor <span class="sort-arrow">↕</span></th>
         <th id="h-th-Pago" onclick="setHSort('Pago')" title="Pagamento confirmado">Pago <span class="sort-arrow">↕</span></th>
         <th id="h-th-NF" onclick="setHSort('NF')">NF <span class="sort-arrow">↕</span></th>
         <th id="h-th-NFem" onclick="setHSort('NFem')" title="NF emitida">NF &#10003; <span class="sort-arrow">↕</span></th>
-        <th id="h-th-Obs" onclick="setHSort('Obs')">Observa&ccedil;&otilde;es <span class="sort-arrow">↕</span></th><th></th>
+        <th id="h-th-Obs" onclick="setHSort('Obs')">Obs <span class="sort-arrow">↕</span></th>
+        <th></th>
       </tr></thead>
       <tbody id="h-body"></tbody></table>
       </div>
@@ -1498,9 +1505,7 @@ function rendHist(){
       '<td style="white-space:nowrap">'+fmtDate(r.Data)+'</td>'+
       '<td><span class="badge badge-'+(isE?'in':'out')+'">'+(isE?'Entrada':'Saída')+'</span></td>'+
       '<td>'+(r.Origem||'—')+'</td>'+
-      '<td>'+(r.Cliente||'—')+'</td>'+
-      '<td>'+(r.Fornecedor||'—')+'</td>'+
-      '<td>'+(r.Despesa||'—')+'</td>'+
+      '<td>'+(r.Cliente||r.RT||r.Despesa||'—')+'</td>'+
       '<td style="white-space:nowrap">'+(r.Parcela||'—')+'</td>'+
       '<td style="font-weight:700;color:'+(isE?'#27ae60':'#c0392b')+'">'+fmt(r.Valor)+'</td>'+
       '<td style="text-align:center"><button class="chk-btn pago-btn'+(isPago?' on':'')+'" data-ri="'+ri+'" title="Confirmar pagamento">'+(isPago?'&#10003;':'')+'</button></td>'+
@@ -1522,7 +1527,7 @@ function rendHist(){
     body.appendChild(tr);
   });
   // Update sort indicators
-  ['DataLanc','Data','Tipo','Origem','Cliente','RT','Despesa','Parcela','Valor','Pago','NF','NFem','Obs'].forEach(function(c){
+  ['DataLanc','Data','Tipo','Origem','Cliente','Parcela','Valor','Pago','NF','NFem','Obs'].forEach(function(c){
     var el=document.getElementById('h-th-'+c);if(!el)return;
     var arrow=el.querySelector('.sort-arrow');if(!arrow)return;
     arrow.textContent=(hSortCol===c)?(hSortDir===1?'↑':'↓'):'↕';
@@ -3261,67 +3266,60 @@ function rendConcil(){
     var txNome=tx.cliente||tx.rt||tx.descricao||'';
     var mdNome=md.Cliente||md.RT||md.Descrição||'';
     var tipoCor=tx.tipo==='Entrada'?'#27ae60':'#c0392b';
-    h += '<div style="background:#fff;border-radius:14px;border:1.5px solid #e0e0e0;overflow:hidden">'
-      // Cabeçalho
-      +'<div style="background:#f7f7f7;padding:12px 20px;border-bottom:1px solid #eee;display:flex;align-items:center;gap:10px">'
-      +'<span style="font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#aaa">Vínculo sugerido</span>'
-      +'<span style="background:#fff3e0;color:#e67e22;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px">Score: '+c.score+'</span>'
-      +'</div>'
-      // Corpo 2 colunas
-      +'<div style="display:grid;grid-template-columns:1fr 40px 1fr;gap:0;align-items:center">'
-      // Extrato
-      +'<div style="padding:20px">'
-      +'<div style="font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#aaa;margin-bottom:10px">📄 Extrato</div>'
-      +'<div style="font-size:13px;font-weight:700;margin-bottom:6px">'+txNome+'</div>'
-      +'<div style="font-size:12px;color:#666;margin-bottom:4px">'+tx.descricao+'</div>'
-      +'<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px">'
-      +'<span style="font-size:15px;font-weight:800;color:'+tipoCor+'">'+txValFmt+'</span>'
-      +'<span style="font-size:12px;color:#aaa;align-self:center">'+tx.data.split('-').reverse().join('/')+'</span>'
+    var mdDataFmt = md.Data ? md.Data.split('-').reverse().join('/') : '—';
+    h += '<div style="background:#fff;border-radius:12px;border:1.5px solid #e8e8e8;overflow:hidden;margin-bottom:0">'
+      // Cabeçalho compacto
+      +'<div style="padding:10px 18px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;justify-content:space-between">'
+      +'<span style="font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#bbb">Vínculo sugerido</span>'
+      +'<div style="display:flex;align-items:center;gap:8px">'
+      +'<span style="background:#fff8f0;color:#e67e22;font-size:10px;font-weight:700;padding:2px 8px;border-radius:8px">Score: '+c.score+'</span>'
+      +'<button onclick="concilToggleEdit('+ci+')" id="cedit-btn-'+ci+'" title="Editar lançamento" style="background:none;border:none;cursor:pointer;font-size:14px;color:#999;padding:2px 4px" onmouseover="this.style.color='#333'" onmouseout="this.style.color='#999'">✎</button>'
       +'</div></div>'
-      // Seta
-      +'<div style="text-align:center;font-size:20px;color:#bbb">↔</div>'
-      // Sistema
-      +'<div style="padding:20px">'
-      +'<div style="font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#aaa;margin-bottom:10px">💾 Sistema</div>'
-      +'<div style="font-size:13px;font-weight:700;margin-bottom:6px">'+mdNome+'</div>'
-      +'<div style="font-size:12px;color:#666;margin-bottom:4px">'+(md.Origem||md.Movimentação||'')+'</div>'
-      +'<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px">'
-      +'<span style="font-size:15px;font-weight:800;color:'+tipoCor+'">'+mdValFmt+'</span>'
-      +'<span style="font-size:12px;color:#aaa;align-self:center">'+(md.Data||'')+'</span>'
+      // Corpo: linha única extrato → sistema
+      +'<div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:16px 18px;gap:12px">'
+      +'<div>'
+      +'<div style="font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#bbb;margin-bottom:6px">Extrato</div>'
+      +'<div style="font-size:13px;font-weight:700;color:#1a1a1a;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+tx.descricao+'</div>'
+      +'<div style="display:flex;gap:12px;align-items:baseline;margin-top:4px">'
+      +'<span style="font-size:14px;font-weight:800;color:'+tipoCor+'">'+txValFmt+'</span>'
+      +'<span style="font-size:11px;color:#bbb">'+tx.data.split('-').reverse().join('/')+'</span>'
+      +'</div></div>'
+      +'<div style="font-size:16px;color:#d0d0d0">→</div>'
+      +'<div>'
+      +'<div style="font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#bbb;margin-bottom:6px">Sistema</div>'
+      +'<div style="font-size:13px;font-weight:700;color:#1a1a1a;margin-bottom:2px">'+mdNome+'</div>'
+      +'<div style="display:flex;gap:8px;align-items:baseline;margin-top:4px;flex-wrap:wrap">'
+      +'<span style="font-size:14px;font-weight:800;color:'+tipoCor+'">'+mdValFmt+'</span>'
+      +'<span style="font-size:11px;color:#bbb">'+mdDataFmt+'</span>'
+      +'<span style="font-size:11px;color:#999;background:#f5f5f5;padding:1px 7px;border-radius:6px">'+(md.Origem||md.Movimentação||'')+'</span>'
       +'</div></div>'
       +'</div>'
       // Painel de edição (colapsado)
-      +'<div id="concil-edit-'+ci+'" style="display:none;border-top:1px solid #f0f0f0;padding:16px 20px;background:#fafafa">'
-      +'<div style="font-size:12px;font-weight:700;color:#555;margin-bottom:12px">✏️ Editar lançamento do sistema antes de confirmar:</div>'
-      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">'
-      // Origem
-      +'<div><label style="font-size:11px;color:#aaa;font-weight:700;display:block;margin-bottom:4px">ORIGEM</label>'
-      +'<select id="cedit-orig-'+ci+'" onchange="concilEditOrigem('+ci+')" style="width:100%;padding:7px 10px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:13px">'
+      +'<div id="concil-edit-'+ci+'" style="display:none;border-top:1px solid #f0f0f0;padding:14px 18px;background:#fafafa">'
+      +'<div style="font-size:11px;font-weight:700;color:#aaa;margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px">Editar lançamento</div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'
+      +'<div><label style="font-size:10px;color:#aaa;font-weight:700;display:block;margin-bottom:3px">ORIGEM</label>'
+      +'<select id="cedit-orig-'+ci+'" onchange="concilEditOrigem('+ci+')" style="width:100%;padding:6px 10px;border:1.5px solid #e0e0e0;border-radius:7px;font-size:12px">'
       +ORIGENS_ENTRADA.concat(ORIGENS_SAIDA).map(function(o){return '<option value="'+o+'"'+(o===(md.Origem||md.Movimentação||'')?'selected':'')+'>'+o+'</option>';}).join('')
       +'</select></div>'
-      // Nome
-      +'<div><label style="font-size:11px;color:#aaa;font-weight:700;display:block;margin-bottom:4px">NOME</label>'
-      +'<input id="cedit-nome-'+ci+'" type="text" value="'+mdNome.replace(/"/g,'&quot;')+'" list="cedit-nome-list-'+ci+'" placeholder="Nome..." style="width:100%;box-sizing:border-box;padding:7px 10px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:13px">'
+      +'<div><label style="font-size:10px;color:#aaa;font-weight:700;display:block;margin-bottom:3px">NOME</label>'
+      +'<input id="cedit-nome-'+ci+'" type="text" value="'+mdNome.replace(/"/g,'&quot;')+'" list="cedit-nome-list-'+ci+'" placeholder="Nome..." style="width:100%;box-sizing:border-box;padding:6px 10px;border:1.5px solid #e0e0e0;border-radius:7px;font-size:12px">'
       +'<datalist id="cedit-nome-list-'+ci+'">'+CLI_HON.concat(RT_EMPRESAS).map(function(n){return '<option value="'+n.replace(/"/g,'&quot;')+'"></option>';}).join('')+'</datalist></div>'
-      // NF
-      +'<div><label style="font-size:11px;color:#aaa;font-weight:700;display:block;margin-bottom:4px">NOTA FISCAL</label>'
-      +'<div style="display:flex;gap:6px">'
-      +['Não','Sim','A definir'].map(function(nf){var sel=(md.NF||'Não')===nf;return '<button onclick="concilEditNF('+ci+',\''+nf+'\')" id="cedit-nf-'+ci+'-'+nf.replace(/ /g,'_')+'" style="flex:1;padding:6px 4px;border-radius:7px;border:1.5px solid '+(sel?'#1a1a1a':'#e0e0e0')+';background:'+(sel?'#1a1a1a':'#fff')+';color:'+(sel?'#fff':'#666')+';font-size:11px;font-weight:700;cursor:pointer">'+nf+'</button>';}).join('')
+      +'<div><label style="font-size:10px;color:#aaa;font-weight:700;display:block;margin-bottom:3px">NOTA FISCAL</label>'
+      +'<div style="display:flex;gap:5px">'
+      +['Não','Sim','A definir'].map(function(nf){var sel=(md.NF||'Não')===nf;return '<button onclick="concilEditNF('+ci+',''+nf+'')" id="cedit-nf-'+ci+'-'+nf.replace(/ /g,'_')+'" style="flex:1;padding:5px 4px;border-radius:6px;border:1.5px solid '+(sel?'#1a1a1a':'#e0e0e0')+';background:'+(sel?'#1a1a1a':'#fff')+';color:'+(sel?'#fff':'#666')+';font-size:11px;font-weight:700;cursor:pointer">'+nf+'</button>';}).join('')
       +'</div></div>'
-      // Valor
-      +'<div><label style="font-size:11px;color:#aaa;font-weight:700;display:block;margin-bottom:4px">VALOR (R$)</label>'
-      +'<input id="cedit-val-'+ci+'" type="text" value="'+mdValFmt.replace('R$ ','')+'" style="width:100%;box-sizing:border-box;padding:7px 10px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:13px"></div>'
+      +'<div><label style="font-size:10px;color:#aaa;font-weight:700;display:block;margin-bottom:3px">VALOR (R$)</label>'
+      +'<input id="cedit-val-'+ci+'" type="text" value="'+mdValFmt.replace('R$ ','')+'" style="width:100%;box-sizing:border-box;padding:6px 10px;border:1.5px solid #e0e0e0;border-radius:7px;font-size:12px"></div>'
       +'</div>'
-      +'<div style="margin-top:12px;display:flex;justify-content:flex-end">'
-      +'<button onclick="concilEditSalvar('+ci+')" style="padding:8px 20px;border-radius:8px;border:none;background:#3498db;color:#fff;font-size:12px;font-weight:700;cursor:pointer">💾 Salvar edição</button>'
+      +'<div style="margin-top:10px;display:flex;justify-content:flex-end">'
+      +'<button onclick="concilEditSalvar('+ci+')" style="padding:7px 18px;border-radius:7px;border:none;background:#1a1a1a;color:#fff;font-size:12px;font-weight:700;cursor:pointer">Salvar</button>'
       +'</div></div>'
       // Ações
-      +'<div style="padding:14px 20px;border-top:1px solid #f0f0f0;display:flex;gap:10px;justify-content:space-between;align-items:center">'
-      +'<button onclick="concilToggleEdit('+ci+')" style="padding:9px 16px;border-radius:9px;border:1.5px solid #ddd;background:#fff;font-size:13px;font-weight:600;cursor:pointer;color:#3498db">✏️ Editar</button>'
-      +'<div style="display:flex;gap:10px">'
-      +'<button onclick="concilRejeitar('+ci+')" style="padding:9px 20px;border-radius:9px;border:1.5px solid #ddd;background:#fff;font-size:13px;font-weight:600;cursor:pointer;color:#666">✗ Rejeitar — importar como novo</button>'
-      +'<button onclick="concilAprovar('+ci+')" style="padding:9px 20px;border-radius:9px;border:none;background:#27ae60;color:#fff;font-size:13px;font-weight:700;cursor:pointer">✓ Confirmar vínculo</button>'
-      +'</div></div>'
+      +'<div style="padding:12px 18px;border-top:1px solid #f0f0f0;display:flex;gap:8px;justify-content:flex-end">'
+      +'<button onclick="concilRejeitar('+ci+')" style="padding:8px 16px;border-radius:8px;border:1.5px solid #ddd;background:#fff;font-size:12px;font-weight:600;cursor:pointer;color:#888">Rejeitar</button>'
+      +'<button onclick="concilAprovar('+ci+')" style="padding:8px 20px;border-radius:8px;border:none;background:#27ae60;color:#fff;font-size:12px;font-weight:700;cursor:pointer">✓ Confirmar</button>'
+      +'</div>'
       +'</div>';
   });
   h += '</div>';
