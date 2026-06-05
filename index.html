@@ -3083,6 +3083,7 @@ function rendImpHistorico(){
     html += '<span>'+badges+'</span>';
     html += '</div>';
     html += '<span id="imp-hist-arr-'+si+'" onclick="impHistToggle('+si+')" style="font-size:11px;color:#aaa;transition:transform .2s;cursor:pointer">▼</span>';
+    html += '<button onclick="impHistRenomear('+si+')" title="Renomear" style="background:none;border:none;cursor:pointer;color:#ccc;font-size:13px;padding:0 2px;line-height:1" onmouseover="this.style.color=\'#3498db\'" onmouseout="this.style.color=\'#ccc\'">✎</button>';
     html += '<button onclick="impHistExcluir('+si+')" title="Excluir" style="background:none;border:none;cursor:pointer;color:#ccc;font-size:15px;padding:0 2px;line-height:1" onmouseover="this.style.color=\'#e74c3c\'" onmouseout="this.style.color=\'#ccc\'">✕</button>';
     html += '</div>';
     // Detalhe (colapsado por padrão)
@@ -3107,6 +3108,18 @@ function rendImpHistorico(){
     html += '</div>';
   });
   el.innerHTML = html;
+}
+
+function impHistRenomear(si){
+  var s = imp_historico[si];
+  if(!s) return;
+  var novo = prompt('Renomear importação:', s.arquivo);
+  if(novo === null) return;
+  novo = novo.trim();
+  if(!novo){ showToast('Nome não pode ser vazio','#e67e22'); return; }
+  imp_historico[si].arquivo = novo;
+  salvarLocal();
+  rendImpHistorico();
 }
 
 function impHistExcluir(si){
