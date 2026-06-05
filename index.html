@@ -3268,16 +3268,105 @@ function rendConcil(){
       +'<span style="font-size:12px;color:#aaa;align-self:center">'+(md.Data||'')+'</span>'
       +'</div></div>'
       +'</div>'
+      // Painel de edição (colapsado)
+      +'<div id="concil-edit-'+ci+'" style="display:none;border-top:1px solid #f0f0f0;padding:16px 20px;background:#fafafa">'
+      +'<div style="font-size:12px;font-weight:700;color:#555;margin-bottom:12px">✏️ Editar lançamento do sistema antes de confirmar:</div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">'
+      // Origem
+      +'<div><label style="font-size:11px;color:#aaa;font-weight:700;display:block;margin-bottom:4px">ORIGEM</label>'
+      +'<select id="cedit-orig-'+ci+'" onchange="concilEditOrigem('+ci+')" style="width:100%;padding:7px 10px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:13px">'
+      +ORIGENS_ENTRADA.concat(ORIGENS_SAIDA).map(function(o){return '<option value="'+o+'"'+(o===(md.Origem||md.Movimentação||'')?'selected':'')+'>'+o+'</option>';}).join('')
+      +'</select></div>'
+      // Nome
+      +'<div><label style="font-size:11px;color:#aaa;font-weight:700;display:block;margin-bottom:4px">NOME</label>'
+      +'<input id="cedit-nome-'+ci+'" type="text" value="'+mdNome.replace(/"/g,'&quot;')+'" list="cedit-nome-list-'+ci+'" placeholder="Nome..." style="width:100%;box-sizing:border-box;padding:7px 10px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:13px">'
+      +'<datalist id="cedit-nome-list-'+ci+'">'+CLI_HON.concat(RT_EMPRESAS).map(function(n){return '<option value="'+n.replace(/"/g,'&quot;')+'"></option>';}).join('')+'</datalist></div>'
+      // NF
+      +'<div><label style="font-size:11px;color:#aaa;font-weight:700;display:block;margin-bottom:4px">NOTA FISCAL</label>'
+      +'<div style="display:flex;gap:6px">'
+      +['Não','Sim','A definir'].map(function(nf){var sel=(md.NF||'Não')===nf;return '<button onclick="concilEditNF('+ci+',\''+nf+'\')" id="cedit-nf-'+ci+'-'+nf.replace(/ /g,'_')+'" style="flex:1;padding:6px 4px;border-radius:7px;border:1.5px solid '+(sel?'#1a1a1a':'#e0e0e0')+';background:'+(sel?'#1a1a1a':'#fff')+';color:'+(sel?'#fff':'#666')+';font-size:11px;font-weight:700;cursor:pointer">'+nf+'</button>';}).join('')
+      +'</div></div>'
+      // Valor
+      +'<div><label style="font-size:11px;color:#aaa;font-weight:700;display:block;margin-bottom:4px">VALOR (R$)</label>'
+      +'<input id="cedit-val-'+ci+'" type="text" value="'+mdValFmt.replace('R$ ','')+'" style="width:100%;box-sizing:border-box;padding:7px 10px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:13px"></div>'
+      +'</div>'
+      +'<div style="margin-top:12px;display:flex;justify-content:flex-end">'
+      +'<button onclick="concilEditSalvar('+ci+')" style="padding:8px 20px;border-radius:8px;border:none;background:#3498db;color:#fff;font-size:12px;font-weight:700;cursor:pointer">💾 Salvar edição</button>'
+      +'</div></div>'
       // Ações
-      +'<div style="padding:14px 20px;border-top:1px solid #f0f0f0;display:flex;gap:10px;justify-content:flex-end">'
+      +'<div style="padding:14px 20px;border-top:1px solid #f0f0f0;display:flex;gap:10px;justify-content:space-between;align-items:center">'
+      +'<button onclick="concilToggleEdit('+ci+')" style="padding:9px 16px;border-radius:9px;border:1.5px solid #ddd;background:#fff;font-size:13px;font-weight:600;cursor:pointer;color:#3498db">✏️ Editar</button>'
+      +'<div style="display:flex;gap:10px">'
       +'<button onclick="concilRejeitar('+ci+')" style="padding:9px 20px;border-radius:9px;border:1.5px solid #ddd;background:#fff;font-size:13px;font-weight:600;cursor:pointer;color:#666">✗ Rejeitar — importar como novo</button>'
       +'<button onclick="concilAprovar('+ci+')" style="padding:9px 20px;border-radius:9px;border:none;background:#27ae60;color:#fff;font-size:13px;font-weight:700;cursor:pointer">✓ Confirmar vínculo</button>'
-      +'</div>'
+      +'</div></div>'
       +'</div>';
   });
   h += '</div>';
   cont.innerHTML=h;
 }
+function concilToggleEdit(ci){
+  var el = R('concil-edit-'+ci);
+  if(!el) return;
+  el.style.display = el.style.display==='none' ? 'block' : 'none';
+}
+
+function concilEditOrigem(ci){
+  // ajusta label do botão editar (sem ação adicional por enquanto)
+}
+
+function concilEditNF(ci, nf){
+  ['Não','Sim','A definir'].forEach(function(v){
+    var btn = R('cedit-nf-'+ci+'-'+v.replace(/ /g,'_'));
+    if(!btn) return;
+    var sel = v===nf;
+    btn.style.border = '1.5px solid '+(sel?'#1a1a1a':'#e0e0e0');
+    btn.style.background = sel?'#1a1a1a':'#fff';
+    btn.style.color = sel?'#fff':'#666';
+  });
+  // guarda seleção temporária no dataset
+  var panel = R('concil-edit-'+ci);
+  if(panel) panel.dataset.nf = nf;
+}
+
+function concilEditSalvar(ci){
+  var c = conciliacoes[ci]; if(!c) return;
+  var found = concilBuscarDado(c);
+  if(!found){ showToast('Lançamento não encontrado','#e67e22'); return; }
+  var d = found.d;
+  var orig  = R('cedit-orig-'+ci);
+  var nomeI = R('cedit-nome-'+ci);
+  var valI  = R('cedit-val-'+ci);
+  var panel = R('concil-edit-'+ci);
+  var nf    = (panel && panel.dataset.nf) || d.NF || 'Não';
+  if(orig){
+    var novaOrigem = orig.value;
+    d.Origem = novaOrigem;
+    d.Movimentação = novaOrigem==='Cliente'||novaOrigem==='RT' ? 'Entrada' : 'Saída';
+    // Limpa campos de nome cruzados
+    if(novaOrigem==='Cliente'){ if(nomeI) d.Cliente=nomeI.value.trim(); d.RT=''; d.Despesa=''; }
+    else if(novaOrigem==='RT'){ if(nomeI) d.RT=nomeI.value.trim(); d.Cliente=''; d.Despesa=''; }
+    else { if(nomeI) d.Despesa=nomeI.value.trim(); d.Cliente=''; d.RT=''; }
+  } else {
+    if(nomeI){
+      if(d.Cliente) d.Cliente=nomeI.value.trim();
+      else if(d.RT) d.RT=nomeI.value.trim();
+      else d.Despesa=nomeI.value.trim();
+    }
+  }
+  d.NF = nf;
+  if(valI){
+    var vStr = valI.value.replace(/\./g,'').replace(',','.');
+    var vNum = parseFloat(vStr);
+    if(!isNaN(vNum)) d.Valor = String(vNum).replace('.',',');
+  }
+  // Atualiza matchData para refletir edição
+  c.matchData = Object.assign({}, d);
+  salvarLocal();
+  showToast('Lançamento atualizado','#27ae60',2000);
+  rendConcil();
+}
+
 function concilBuscarDado(c){
   // 1. Tenta pelo índice salvo (caminho rápido)
   var d = dados[c.matchIdx];
