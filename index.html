@@ -171,7 +171,7 @@ tr.row-pago td{opacity:.75}
 .mob-nav{display:flex;background:#fff;border-bottom:1px solid var(--bord);flex-shrink:0;z-index:100}
 .mob-nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 0 8px;font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#999;cursor:pointer;gap:4px;border-bottom:2px solid transparent;transition:all .15s}
 .mob-nav-item svg{width:20px;height:20px}.mob-nav-item.act{color:#1a1a1a;border-bottom-color:#1a1a1a}
-.fab{position:fixed;bottom:75px;right:20px;width:54px;height:54px;border-radius:50%;background:#1a1a1a;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 20px rgba(0,0,0,.3);z-index:200;transition:transform .15s}
+.fab{display:none}
 .fab:active{transform:scale(.93)}
 .sheet-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:500;display:flex;align-items:flex-end;opacity:0;pointer-events:none;transition:opacity .25s}
 .sheet-overlay.open{opacity:1;pointer-events:all}
@@ -796,8 +796,8 @@ tr.row-pago td{opacity:.75}
     <div class="mob-nav-item" onclick="mobNav('alert',this)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>ALERTAS
     </div>
-    <div class="mob-nav-item" onclick="mobNav('admin',this)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>ADMIN
+    <div class="mob-nav-item" onclick="openSheet()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>LANÇAR
     </div>
   </div>
   <div class="mob-content" id="mob-view"></div>
@@ -2101,11 +2101,9 @@ function rendMobDash(){
     +'<div class="mob-kpi-row">'+mkpi('Saldo',fmt(sal),sal>=0?'#27ae60':'#c0392b')+mkpi('Clientes',fmt(cli),'#27ae60')+mkpi('RT',fmt(rt),'#2980b9')+mkpi('Despesa Total',fmt(sai),'#c0392b')+mkpi('Fut. Receber',fmt(futR),'#27ae60')+mkpi('Fut. Pagar',fmt(futP),'#c0392b')+mkpi('Receita Mês',fmt(eM),'#27ae60')+mkpi('Despesa Mês',fmt(sM),'#c0392b')+'</div><div style="font-size:10px;font-weight:700;letter-spacing:.6px;color:#888;margin-bottom:10px">ÚLTIMOS LANÇAMENTOS</div>';
   rec.forEach(function(r){
     var isE=r['Movimentação']==='Entrada';var ri=dados.indexOf(r);
-    html+='<div class="hist-item"><div class="hist-info"><div class="hist-name">'+(r.Cliente||r.Fornecedor||r.Despesa||'—')+'</div><div class="hist-sub">'+fmtDate(r.Data)+(r.Parcela?' · '+r.Parcela:'')+(r.Origem?' · '+r.Origem:'')+'</div></div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px"><div class="hist-val '+(isE?'pos':'neg')+'" style="font-size:15px;font-weight:700">'+(isE?'+':'-')+fmt(r.Valor)+'</div><div style="display:flex;gap:2px"><button class="ic-btn edit-mob" data-ri="'+ri+'" style="font-size:13px">&#9998;</button><button class="ic-btn del-mob" data-ri="'+ri+'" style="font-size:13px;color:#c0392b">&#128465;</button></div></div></div>';
+    html+='<div class="hist-item"><div class="hist-info"><div class="hist-name">'+(r.Cliente||r.Fornecedor||r.Despesa||'—')+'</div><div class="hist-sub">'+fmtDate(r.Data)+(r.Parcela?' · '+r.Parcela:'')+(r.Origem?' · '+r.Origem:'')+'</div></div><div style="text-align:right"><div class="hist-val '+(isE?'pos':'neg')+'" style="font-size:15px;font-weight:700">'+(isE?'+':'-')+fmt(r.Valor)+'</div></div></div>';
   });
   mv.innerHTML=html;
-  mv.querySelectorAll('.edit-mob').forEach(function(b){b.addEventListener('click',function(){openEdit(parseInt(this.dataset.ri));});});
-  mv.querySelectorAll('.del-mob').forEach(function(b){b.addEventListener('click',function(){var ri=parseInt(this.dataset.ri);if(confirm('Excluir?')){dados.splice(ri,1);salvarLocal();rendAll();}});});
 }
 function setMobHFutFilt(v){hFutFilt=(hFutFilt===v)?'':v;rendMobHist();}
 function rendMobHist(){
@@ -2122,11 +2120,12 @@ function rendMobHist(){
     +'<div style="font-size:10px;font-weight:700;letter-spacing:.6px;color:#888;margin-bottom:10px">'+(hFutFilt==='receber'?'A RECEBER':hFutFilt==='pagar'?'A PAGAR':'HISTÓRICO')+' ('+filt.length+' lançamentos)</div>';
   filt.forEach(function(r){
     var isE=r['Movimentação']==='Entrada';var ri=dados.indexOf(r);
-    html+='<div class="hist-item"><div class="hist-info"><div class="hist-name">'+(r.Cliente||r.Fornecedor||r.Despesa||'—')+'</div><div class="hist-sub">'+fmtDate(r.Data)+' · '+(r.Origem||r['Movimentação'])+(r.Despesa?' · '+r.Despesa:'')+'</div></div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px"><div class="hist-val '+(isE?'pos':'neg')+'" style="font-size:15px;font-weight:700">'+(isE?'+':'-')+fmt(r.Valor)+'</div><div style="display:flex;gap:2px"><button class="ic-btn edit-mob" data-ri="'+ri+'" style="font-size:13px">&#9998;</button><button class="ic-btn del-mob" data-ri="'+ri+'" style="font-size:13px;color:#c0392b">&#128465;</button></div></div></div>';
+    var nfTag=r['Nota Fiscal']==='Sim'&&!r.nf_emitida?'<span style="font-size:9px;background:#eaf4fb;color:#2980b9;border-radius:4px;padding:1px 5px;font-weight:700;margin-left:4px">NF</span>':'';
+    var pagoTag=!r.pago&&r.Data&&r.Data<=today()?'<span style="font-size:9px;background:#fdecea;color:#c0392b;border-radius:4px;padding:1px 5px;font-weight:700;margin-left:4px">PEND</span>':'';
+    html+='<div class="hist-item mob-hist-card" data-ri="'+ri+'" style="cursor:pointer"><div class="hist-info"><div class="hist-name">'+(r.Cliente||r.Fornecedor||r.Despesa||'—')+nfTag+pagoTag+'</div><div class="hist-sub">'+fmtDate(r.Data)+' · '+(r.Origem||r['Movimentação'])+(r.Despesa?' · '+r.Despesa:'')+'</div></div><div style="text-align:right"><div class="hist-val '+(isE?'pos':'neg')+'" style="font-size:15px;font-weight:700">'+(isE?'+':'-')+fmt(r.Valor)+'</div><div style="font-size:10px;color:#bbb;margin-top:2px">toque para editar</div></div></div>';
   });
   mv.innerHTML=html;
-  mv.querySelectorAll('.edit-mob').forEach(function(b){b.addEventListener('click',function(){openEdit(parseInt(this.dataset.ri));});});
-  mv.querySelectorAll('.del-mob').forEach(function(b){b.addEventListener('click',function(){var ri=parseInt(this.dataset.ri);if(confirm('Excluir?')){dados.splice(ri,1);salvarLocal();rendAll();}});});
+  mv.querySelectorAll('.mob-hist-card').forEach(function(card){card.addEventListener('click',function(){openEdit(parseInt(this.dataset.ri));});});
 }
 function rendMobAlert(){
   var mv=R('mob-view');if(!mv)return;
@@ -2153,7 +2152,7 @@ function rendMobAlert(){
         +'<div class="hist-sub">'+fmtDate(r.Data)+' · '+(dias===0?'Hoje':dias===1?'1 dia':dias+' dias')+' atraso</div></div>'
         +'<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">'
         +'<div class="hist-val '+(isE?'pos':'neg')+'" style="font-size:14px;font-weight:700">'+(isE?'+':'-')+fmt(r.Valor)+'</div>'
-        +'<button class="ic-btn" onclick="dados['+ri+'].pago=true;salvarLocal();rendMobAlert();" style="font-size:11px;padding:2px 8px;background:#27ae60;color:#fff;border-radius:4px">✓ Pago</button>'
+        +'<button onclick="dados['+ri+'].pago=true;salvarLocal();rendAll();rendMobAlert();" style="font-size:12px;font-weight:700;padding:8px 14px;background:#27ae60;color:#fff;border:none;border-radius:8px;cursor:pointer;min-width:80px">✓ Pago</button>'
         +'</div></div>';
     });
   }
@@ -2174,7 +2173,7 @@ function rendMobAlert(){
         +'<div class="hist-sub">'+fmtDate(r.Data)+(r.Origem?' · '+r.Origem:'')+'</div></div>'
         +'<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">'
         +'<div class="hist-val pos" style="font-size:14px;font-weight:700">+'+fmt(r.Valor)+'</div>'
-        +'<button class="ic-btn" onclick="dados['+ri+'].nf_emitida=true;salvarLocal();rendMobAlert();" style="font-size:11px;padding:2px 8px;background:#e67e22;color:#fff;border-radius:4px">Emitir</button>'
+        +'<button onclick="dados['+ri+'].nf_emitida=true;salvarLocal();rendAll();rendMobAlert();" style="font-size:12px;font-weight:700;padding:8px 14px;background:#2980b9;color:#fff;border:none;border-radius:8px;cursor:pointer;min-width:80px">✓ Emitir</button>'
         +'</div></div>';
     });
   }
