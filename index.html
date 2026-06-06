@@ -793,8 +793,9 @@ tr.row-pago td{opacity:.75}
     <div class="mob-nav-item" onclick="mobNav('hist',this)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>CONTROLE
     </div>
-    <div class="mob-nav-item" onclick="mobNav('alert',this)">
+    <div class="mob-nav-item" onclick="mobNav('alert',this)" style="position:relative">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>ALERTAS
+      <span id="mob-alertas-badge" style="display:none;position:absolute;top:6px;right:12px;background:#c0392b;color:#fff;border-radius:10px;font-size:9px;font-weight:700;padding:1px 5px;min-width:16px;text-align:center;line-height:14px"></span>
     </div>
     <div class="mob-nav-item" onclick="openSheet()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>LANÇAR
@@ -872,7 +873,7 @@ tr.row-pago td{opacity:.75}
             <option value="Inter Dalila">Inter Dalila</option>
           </select>
         </div>
-        <div class="mob-fld" style="flex:1">
+        <div class="mob-fld" id="m-nf-row" style="flex:1">
           <label>Nota Fiscal</label>
           <select id="m-nf-sel" onchange="setNFSel('m',this.value)" style="width:100%;padding:9px 12px;border:1.5px solid var(--bord);border-radius:8px;font-size:13px;background:#fff">
             <option value="Não">Não</option>
@@ -1090,6 +1091,7 @@ function closeSheetOut(e){if(e.target===R('sheet-overlay'))R('sheet-overlay').cl
 function setMType(t){
   mType=t;R('m-btn-in').className=t==='entrada'?'act-in':'';R('m-btn-out').className=t==='saida'?'act-out':'';
   R('m-entrada-fields').style.display=t==='entrada'?'':'none';R('m-saida-fields').style.display=t==='saida'?'':'none';
+  var nfRow=R('m-nf-row');if(nfRow)nfRow.style.display=t==='saida'?'none':'';
 }
 function updMOrigE(){mOrigE=R('m-orig-e').value;var rtRow=R('m-empresa-rt-row');if(rtRow)rtRow.style.display=(mOrigE==='RT')?'':'none';}
 function updMOrigS(){mOrigS=R('m-orig-s').value;var e=R('m-desp');if(e)e.value='';}
@@ -1687,6 +1689,8 @@ function atualizarAlertasBadge(){
   var total=pagPend+nfPend;
   var badge=R('sb-alertas-badge');
   if(badge){if(total>0){badge.style.display='block';badge.textContent=total;}else badge.style.display='none';}
+  var mobBadge=R('mob-alertas-badge');
+  if(mobBadge){if(total>0){mobBadge.style.display='block';mobBadge.textContent=total;}else mobBadge.style.display='none';}
 }
 function rendAlertas(){
   var body=R('alerta-body');if(!body)return;
