@@ -1523,18 +1523,20 @@ function rendHist(){
       '<td style="white-space:nowrap;color:#aaa;font-size:12px">'+(r.DataLanc?fmtDate(r.DataLanc):'—')+'</td>'+
       '<td style="white-space:nowrap">'+fmtDate(r.Data)+'</td>'+
       '<td><span class="badge badge-'+(isE?'in':'out')+'">'+(isE?'Entrada':'Saída')+'</span></td>'+
-      '<td style="white-space:nowrap;color:#888;font-size:12px">'+(r.Banco||'—')+'</td>'+
+      '<td><select class="banco-sel" data-ri="'+ri+'" style="border:1px solid #e0e0e0;border-radius:6px;padding:3px 6px;font-size:11px;background:#fafafa;color:#555;width:100%"><option value=""'+((!r.Banco||r.Banco==="")?'selected':'')+'>A Definir</option><option value="Inter PJ"'+(r.Banco==='Inter PJ'?'selected':'')+'>Inter PJ</option><option value="Inter Dalila"'+(r.Banco==='Inter Dalila'?'selected':'')+'>Inter Dalila</option></select></td>'+
       '<td>'+(r.Origem||'—')+'</td>'+
       '<td>'+(r.Cliente||r.Despesa||'—')+'</td>'+
       '<td>'+(r.Fornecedor||r.RT||'—')+'</td>'+
       '<td style="white-space:nowrap">'+(r.Parcela||'—')+'</td>'+
       '<td style="font-weight:700;color:'+(isE?'#27ae60':'#c0392b')+'">'+fmt(r.Valor)+'</td>'+
       '<td style="text-align:center"><button class="chk-btn pago-btn'+(isPago?' on':'')+'" data-ri="'+ri+'" title="Confirmar pagamento">'+(isPago?'&#10003;':'')+'</button></td>'+
-      '<td><span class="badge" style="background:#f5f5f5;color:#666">'+(r['Nota Fiscal']||'—')+'</span></td>'+
+      '<td><select class="nf-sel" data-ri="'+ri+'" style="border:1px solid #e0e0e0;border-radius:6px;padding:3px 6px;font-size:11px;background:#fafafa;color:#555;width:100%"><option value="Não"'+(r['Nota Fiscal']==='Não'||!r['Nota Fiscal']?'selected':'')+'>Não</option><option value="Sim"'+(r['Nota Fiscal']==='Sim'?'selected':'')+'>Sim</option><option value="A Definir"'+(r['Nota Fiscal']==='A Definir'?'selected':'')+'>A Definir</option></select></td>'+
       '<td style="text-align:center"><button class="chk-btn nf-btn'+(isNFem?' nf-on':'')+'" data-ri="'+ri+'" title="Confirmar NF emitida">'+(isNFem?'&#10003;':'')+'</button></td>'+
       '<td><input class="obs-input obs-inp" type="text" value="'+obsVal+'" placeholder="Obs..." data-ri="'+ri+'"></td>'+
       '<td style="white-space:nowrap"><button class="ic-btn edit-btn" data-ri="'+ri+'" title="Editar">&#9998;</button><button class="ic-btn del-btn" data-ri="'+ri+'" title="Excluir" style="color:#c0392b">&#128465;</button></td>';
     tr.querySelector('.obs-inp').addEventListener('change',function(){var ri=parseInt(this.dataset.ri);if(dados[ri])dados[ri].obs=this.value;salvarLocal();});
+    tr.querySelector('.banco-sel').addEventListener('change',function(){var ri=parseInt(this.dataset.ri);if(dados[ri]){dados[ri].Banco=this.value;salvarLocal();}});
+    tr.querySelector('.nf-sel').addEventListener('change',function(){var ri=parseInt(this.dataset.ri);if(dados[ri]){dados[ri]['Nota Fiscal']=this.value;salvarLocal();rendAlertas();}});
     tr.querySelector('.pago-btn').addEventListener('click',function(){
       var ri=parseInt(this.dataset.ri);if(!dados[ri])return;
       dados[ri].pago=!dados[ri].pago;salvarLocal();rendHist();
