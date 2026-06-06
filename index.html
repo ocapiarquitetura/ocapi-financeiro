@@ -3193,8 +3193,9 @@ function rendImpHistorico(){
     html += '<span>'+badges+'</span>';
     html += '</div>';
     html += '<span id="imp-hist-arr-'+si+'" onclick="impHistToggle('+si+')" style="font-size:11px;color:#aaa;transition:transform .2s;cursor:pointer">▼</span>';
+    html += '<button onclick="impHistDesfazer('+si+')" title="Desfazer importação" style="background:none;border:none;cursor:pointer;color:#ccc;font-size:13px;padding:0 4px;line-height:1" onmouseover="this.style.color=\'#e67e22\'" onmouseout="this.style.color=\'#ccc\'">↩</button>';
     html += '<button onclick="impHistRenomear('+si+')" title="Renomear" style="background:none;border:none;cursor:pointer;color:#ccc;font-size:13px;padding:0 2px;line-height:1" onmouseover="this.style.color=\'#3498db\'" onmouseout="this.style.color=\'#ccc\'">✎</button>';
-    html += '<button onclick="impHistExcluir('+si+')" title="Excluir" style="background:none;border:none;cursor:pointer;color:#ccc;font-size:15px;padding:0 2px;line-height:1" onmouseover="this.style.color=\'#e74c3c\'" onmouseout="this.style.color=\'#ccc\'">✕</button>';
+    html += '<button onclick="impHistExcluir('+si+')" title="Excluir histórico" style="background:none;border:none;cursor:pointer;color:#ccc;font-size:15px;padding:0 2px;line-height:1" onmouseover="this.style.color=\'#e74c3c\'" onmouseout="this.style.color=\'#ccc\'">✕</button>';
     html += '</div>';
     // Detalhe (colapsado por padrão)
     html += '<div id="imp-hist-det-'+si+'" style="display:none;border-top:1px solid #f0f0f0;padding:14px 16px">';
@@ -3230,6 +3231,54 @@ function impHistRenomear(si){
   imp_historico[si].arquivo = novo;
   salvarLocal();
   rendImpHistorico();
+}
+
+function impHistDesfazer(si){
+  var sessao = imp_historico[si];
+  if(!sessao) return;
+  if(!confirm('Desfazer a importação "'+sessao.arquivo+'" de '+fmtDate(sessao.data)+'?\n\nIsso irá:\n• Excluir os lançamentos importados diretos\n• Reverter as conciliações confirmadas\n• Remover conciliações pendentes desta sessão')) return;
+
+  var sid = sessao.id;
+  var revertidos = 0, excluidos = 0;
+
+  // 1. Reverter conciliações aprovadas (restaurar dados originais)
+  conciliacoes.forEach(function(c){
+    if(c.sessaoId !== sid) return;
+    if(c.status === 'aprovado' && c.original){
+      var found = concilBuscarDado(c);
+      if(found){
+        var d = found.d;
+        d.Data = c.original.Data;
+        d.Ano = c.original.Ano;
+        d.Mês = c.original.Mês;
+        d.pago = c.original.pago;
+        d.conciliado = c.original.conciliado || false;
+        d.conciliado_em = c.original.conciliado_em || '';
+        revertidos++;
+      }
+    }
+  });
+
+  // 2. Excluir lançamentos diretos e rejeitados-como-novo desta sessão
+  // Diretos têm _sessaoId ou fonte_import + _ts próximo ao sessaoId
+  // Usamos _ts dentro de ±5min do sessaoId como critério
+  var tMin = sid - 300000, tMax = sid + 300000;
+  dados = dados.filter(function(r){
+    if(r.fonte_import && r._ts && r._ts >= tMin && r._ts <= tMax){ excluidos++; return false; }
+    return true;
+  });
+
+  // 3. Remover todas as conciliações desta sessão
+  conciliacoes = conciliacoes.filter(function(c){ return c.sessaoId !== sid; });
+
+  // 4. Remover do histórico
+  imp_historico.splice(si, 1);
+
+  salvarLocal();
+  rendAll();
+  rendImpHistorico();
+  atualizarConcilBadge();
+  showToast('↩ Importação desfeita: '+excluidos+' excluídos, '+revertidos+' revertidos','#e67e22',4000);
 }
 
 function impHistExcluir(si){
