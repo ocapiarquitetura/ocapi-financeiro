@@ -669,9 +669,10 @@ tr.row-pago td{opacity:.75}
             <input type="checkbox" id="em-nf-emitida" style="width:16px;height:16px;cursor:pointer"> NF emitida
           </label>
         </div>
-        <div style="display:flex;gap:10px;margin-top:24px">
+        <div style="display:flex;gap:10px;margin-top:24px;align-items:center">
           <button class="btn-save" style="padding:11px 28px;font-size:14px" onclick="saveEdit()">Salvar Altera&ccedil;&otilde;es</button>
           <button class="btn-clear" style="padding:11px 20px;font-size:14px" onclick="closeEdit()">Cancelar</button>
+          <button style="margin-left:auto;padding:11px 20px;font-size:14px;background:#e74c3c;color:#fff;border:none;border-radius:9px;font-weight:700;cursor:pointer" onclick="deleteEdit()" onmouseover="this.style.background='#c0392b'" onmouseout="this.style.background='#e74c3c'">🗑 Excluir</button>
         </div>
       </div>
     </div>
@@ -1672,6 +1673,12 @@ function saveEdit(){
   r.pago=R('em-pago').checked;
   r.nf_emitida=R('em-nf-emitida').checked;
   salvarLocal();closeEdit();rendAll();showToast('✓ Lançamento atualizado');
+}
+function deleteEdit(){
+  if(editRI<0||!dados[editRI])return;
+  if(!confirm('Excluir este lançamento? Esta ação não pode ser desfeita.'))return;
+  dados.splice(editRI,1);
+  salvarLocal();closeEdit();rendAll();showToast('🗑 Lançamento excluído','#e74c3c',3000);
 }
 function atualizarAlertasBadge(){
   var t=today();
@@ -2803,7 +2810,7 @@ function impDividirRT(i){
         return '<div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">'+
           '<datalist id="'+dlId+'">'+CLI_HON.map(function(o){return '<option value="'+o.replace(/"/g,'&quot;')+'">';}).join('')+'</datalist>'+
           '<input type="text" list="'+dlId+'" value="'+p.cliente.replace(/"/g,'&quot;')+'" placeholder="Cliente..." id="imp-div-cli-'+pi+'" style="flex:1;padding:8px 10px;border:1.5px solid #ddd;border-radius:8px;font-size:13px">'+
-          '<input type="number" value="'+(p.valor||'')+'" placeholder="Valor" id="imp-div-val-'+pi+'" min="0" step="0.01" style="width:110px;padding:8px 10px;border:1.5px solid #ddd;border-radius:8px;font-size:13px">'+
+          '<input type="text" inputmode="decimal" value="'+(p.valor||'')+'" placeholder="Valor" id="imp-div-val-'+pi+'" style="width:110px;padding:8px 10px;border:1.5px solid #ddd;border-radius:8px;font-size:13px">'+
           (partes.length>1?'<button onclick="impDivRemover('+pi+')" style="border:none;background:transparent;cursor:pointer;font-size:16px;color:#e74c3c">✕</button>':'<span style="width:20px"></span>')+
         '</div>';
       }).join('')+
@@ -2824,18 +2831,18 @@ function impDividirRT(i){
   window._impDivIdx = i;
 
   window.impDivAddLinha = function(){
-    window._impDivPartes.forEach(function(p,pi){p.cliente=document.getElementById('imp-div-cli-'+pi).value;p.valor=parseFloat(document.getElementById('imp-div-val-'+pi).value)||0;});
+    window._impDivPartes.forEach(function(p,pi){p.cliente=document.getElementById('imp-div-cli-'+pi).value;p.valor=parseFloat((document.getElementById('imp-div-val-'+pi).value||'0').replace(',','.'))||0;});
     window._impDivPartes.push({cliente:'',valor:''});
     renderBox();
   };
   window.impDivRemover = function(pi){
-    window._impDivPartes.forEach(function(p,j){p.cliente=document.getElementById('imp-div-cli-'+j).value;p.valor=parseFloat(document.getElementById('imp-div-val-'+j).value)||0;});
+    window._impDivPartes.forEach(function(p,j){p.cliente=document.getElementById('imp-div-cli-'+j).value;p.valor=parseFloat((document.getElementById('imp-div-val-'+j).value||'0').replace(',','.'))||0;});
     window._impDivPartes.splice(pi,1);
     renderBox();
   };
   window.impDivCancelar = function(){overlay.remove();};
   window.impDivConfirmar = function(idx){
-    window._impDivPartes.forEach(function(p,pi){p.cliente=document.getElementById('imp-div-cli-'+pi).value.trim();p.valor=parseFloat(document.getElementById('imp-div-val-'+pi).value)||0;});
+    window._impDivPartes.forEach(function(p,pi){p.cliente=document.getElementById('imp-div-cli-'+pi).value.trim();p.valor=parseFloat((document.getElementById('imp-div-val-'+pi).value||'0').replace(',','.'))||0;});
     var soma = window._impDivPartes.reduce(function(a,p){return a+(p.valor||0);},0);
     if(Math.abs(soma - window._impDivTotal)>=0.01){showToast('A soma dos valores não bate com o total','#c0392b');return;}
     var base = impTxs[idx];
@@ -2849,7 +2856,7 @@ function impDividirRT(i){
   box.addEventListener('input', function(){
     window._impDivPartes.forEach(function(p,pi){
       var c=document.getElementById('imp-div-cli-'+pi);var v=document.getElementById('imp-div-val-'+pi);
-      if(c)p.cliente=c.value;if(v)p.valor=parseFloat(v.value)||0;
+      if(c)p.cliente=c.value;if(v)p.valor=parseFloat((v.value||'0').replace(',','.'))||0;
     });
     renderBox();
   });
@@ -3514,7 +3521,11 @@ function atualizarConcilBadge(){
 function rendConcil(){
   atualizarConcilBadge();
   var cont = R('concil-content'); if(!cont) return;
-  var pendentes = conciliacoes.filter(function(c){return c.status==='pendente';});
+  var pendentes = conciliacoes.filter(function(c){return c.status==='pendente';}).sort(function(a,b){
+    var da=Math.abs(new Date(a.tx.data)-new Date(a.matchData&&a.matchData.Data?a.matchData.Data:'1970-01-01'));
+    var db=Math.abs(new Date(b.tx.data)-new Date(b.matchData&&b.matchData.Data?b.matchData.Data:'1970-01-01'));
+    return da-db;
+  });
   if(!pendentes.length){
     cont.innerHTML='<div style="text-align:center;padding:60px 20px"><div style="font-size:48px;margin-bottom:16px">✅</div><h2 style="font-size:18px;font-weight:700;margin-bottom:8px">Nenhuma conciliação pendente</h2><p style="color:#aaa;font-size:13px">Quando o sistema detectar possíveis vínculos na importação, eles aparecerão aqui.</p></div>';
     return;
