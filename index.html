@@ -2769,6 +2769,93 @@ function impDeduplicar(){
   });
 }
 
+function impDividirRT(i){
+  var t = impTxs[i]; if(!t) return;
+  var total = t.valor;
+  var rt = t.rt || '';
+
+  // Monta modal de divisão
+  var overlay = document.getElementById('imp-dividir-overlay');
+  if(!overlay){
+    overlay = document.createElement('div');
+    overlay.id = 'imp-dividir-overlay';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center';
+    document.body.appendChild(overlay);
+  }
+  overlay.innerHTML = '';
+  var box = document.createElement('div');
+  box.style.cssText = 'background:#fff;border-radius:16px;padding:28px;width:480px;max-width:95vw;box-shadow:0 8px 40px rgba(0,0,0,0.18)';
+
+  var partes = t._divisoes || [{cliente:'',valor:''}];
+
+  function renderBox(){
+    var somaAtual = partes.reduce(function(a,p){return a+(parseFloat(p.valor)||0);},0);
+    var resto = Math.round((total - somaAtual)*100)/100;
+    var ok = Math.abs(resto) < 0.01;
+    box.innerHTML =
+      '<div style="font-size:15px;font-weight:800;margin-bottom:4px">⊕ Dividir lançamento RT</div>'+
+      '<div style="font-size:12px;color:#888;margin-bottom:18px">Empresa RT: <strong>'+rt+'</strong> · Total: <strong>'+fmt(total)+'</strong></div>'+
+      partes.map(function(p,pi){
+        var dlId='imp-div-dl-'+pi;
+        return '<div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">'+
+          '<datalist id="'+dlId+'">'+CLI_HON.map(function(o){return '<option value="'+o.replace(/"/g,'&quot;')+'">';}).join('')+'</datalist>'+
+          '<input type="text" list="'+dlId+'" value="'+p.cliente.replace(/"/g,'&quot;')+'" placeholder="Cliente..." id="imp-div-cli-'+pi+'" style="flex:1;padding:8px 10px;border:1.5px solid #ddd;border-radius:8px;font-size:13px">'+
+          '<input type="number" value="'+(p.valor||'')+'" placeholder="Valor" id="imp-div-val-'+pi+'" min="0" step="0.01" style="width:110px;padding:8px 10px;border:1.5px solid #ddd;border-radius:8px;font-size:13px">'+
+          (partes.length>1?'<button onclick="impDivRemover('+pi+')" style="border:none;background:transparent;cursor:pointer;font-size:16px;color:#e74c3c">✕</button>':'<span style="width:20px"></span>')+
+        '</div>';
+      }).join('')+
+      '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:6px">'+
+        '<button onclick="impDivAddLinha()" style="border:1px dashed #3498db;background:#eaf4fd;color:#2980b9;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer">+ Cliente</button>'+
+        '<span style="font-size:12px;color:'+(ok?'#27ae60':resto<0?'#c0392b':'#e67e22')+';font-weight:700">'+
+          (ok?'✓ Soma ok':'Restam: '+fmt(Math.abs(resto))+(resto<0?' (excede)':''))+
+        '</span>'+
+      '</div>'+
+      '<div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end">'+
+        '<button onclick="impDivCancelar()" style="padding:9px 20px;border:1.5px solid #ddd;background:#fff;border-radius:9px;font-size:13px;cursor:pointer">Cancelar</button>'+
+        '<button onclick="impDivConfirmar('+i+')" style="padding:9px 20px;border:none;background:'+(ok?'#1a1a1a':'#aaa')+';color:#fff;border-radius:9px;font-size:13px;font-weight:700;cursor:'+(ok?'pointer':'not-allowed')+'">Confirmar divisão</button>'+
+      '</div>';
+  }
+
+  window._impDivPartes = partes;
+  window._impDivTotal = total;
+  window._impDivIdx = i;
+
+  window.impDivAddLinha = function(){
+    window._impDivPartes.forEach(function(p,pi){p.cliente=document.getElementById('imp-div-cli-'+pi).value;p.valor=parseFloat(document.getElementById('imp-div-val-'+pi).value)||0;});
+    window._impDivPartes.push({cliente:'',valor:''});
+    renderBox();
+  };
+  window.impDivRemover = function(pi){
+    window._impDivPartes.forEach(function(p,j){p.cliente=document.getElementById('imp-div-cli-'+j).value;p.valor=parseFloat(document.getElementById('imp-div-val-'+j).value)||0;});
+    window._impDivPartes.splice(pi,1);
+    renderBox();
+  };
+  window.impDivCancelar = function(){overlay.remove();};
+  window.impDivConfirmar = function(idx){
+    window._impDivPartes.forEach(function(p,pi){p.cliente=document.getElementById('imp-div-cli-'+pi).value.trim();p.valor=parseFloat(document.getElementById('imp-div-val-'+pi).value)||0;});
+    var soma = window._impDivPartes.reduce(function(a,p){return a+(p.valor||0);},0);
+    if(Math.abs(soma - window._impDivTotal)>=0.01){showToast('A soma dos valores não bate com o total','#c0392b');return;}
+    var base = impTxs[idx];
+    var novas = window._impDivPartes.map(function(p){return Object.assign({},base,{cliente:p.cliente,valor:p.valor,_divisoes:null});});
+    impTxs.splice(idx,1,...novas);
+    overlay.remove();
+    impRenderLista();
+    showToast('Lançamento dividido em '+novas.length+' partes','#27ae60',3000);
+  };
+
+  box.addEventListener('input', function(){
+    window._impDivPartes.forEach(function(p,pi){
+      var c=document.getElementById('imp-div-cli-'+pi);var v=document.getElementById('imp-div-val-'+pi);
+      if(c)p.cliente=c.value;if(v)p.valor=parseFloat(v.value)||0;
+    });
+    renderBox();
+  });
+
+  overlay.appendChild(box);
+  renderBox();
+  overlay.addEventListener('click',function(e){if(e.target===overlay)overlay.remove();});
+}
+
 function impExcluir(i){
   impTxs[i].excluida = true;
   impRenderLista();
@@ -2911,7 +2998,8 @@ function impRenderLista(){
     }
 
     var obsCell = '<input type="text" value="'+(t.obs||'')+'" onchange="impUpdField('+i+',\'obs\',this.value)" placeholder="..." style="border:1px solid #e0e0e0;border-radius:6px;padding:3px 6px;font-size:11px;width:100%;min-width:100px;background:#fafafa">';
-    var excBtn = '<button onclick="impExcluir('+i+')" title="Excluir" style="border:none;background:transparent;cursor:pointer;font-size:14px;color:#e74c3c;padding:2px 6px">🗑️</button>';
+    var dividirBtn = (t.tipo==='Entrada'&&t.origem==='RT') ? '<button onclick="impDividirRT('+i+')" title="Dividir entre clientes" style="border:1px solid #3498db;background:#eaf4fd;color:#2980b9;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;padding:3px 7px;white-space:nowrap">⊕ Dividir</button>' : '';
+    var excBtn = (dividirBtn?dividirBtn+'<br>':'')+'<button onclick="impExcluir('+i+')" title="Excluir" style="border:none;background:transparent;cursor:pointer;font-size:14px;color:#e74c3c;padding:2px 6px">🗑️</button>';
 
     var row = '<tr style="background:#fff;border-left:3px solid '+leftClr+';border-bottom:1px solid #f5f5f5">';
     row += TD('<span style="font-size:12px;color:#555;white-space:nowrap">'+dataFmt+'</span>'+dupBadge);
