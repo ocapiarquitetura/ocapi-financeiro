@@ -924,7 +924,7 @@ var mobDashMode='mes_atual',mobDashFrom='',mobDashTo='';
 var dType='entrada',mType='entrada';
 var dOrigE='',dOrigS='',mOrigE='',mOrigS='';
 var dNF='A definir',mNF='A definir';
-var mobP='dash',aTab='cli_hon',hPage=1,hPer=50,admSearch='';
+var mobP='dash',aTab='conciliar',hPage=1,hPer=50,admSearch='';
 var R=function(id){return document.getElementById(id);};
 var fmt=function(v){return 'R$ '+(parseFloat(v)||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});};
 var fmtK=function(v){if(v>=1000000)return 'R$'+(v/1000000).toFixed(1)+'M';if(v>=1000)return 'R$'+Math.round(v/1000)+'k';return 'R$'+Math.round(v);};
@@ -1780,7 +1780,104 @@ function alertToggleNF(ri,btn){
   rendAlertas();
   rendHist();
 }
-var aLabels={cli_hon:'Clientes',rt_emp:'RT',origens_e:'Origens de Entrada',origens_s:'Origens de Saída',aliases:'Aliases de Conciliação'};
+function levenshtein(a,b){
+  var m=a.length,n=b.length,dp=[];
+  for(var i=0;i<=m;i++){dp[i]=[i];for(var j=1;j<=n;j++)dp[i][j]=0;}
+  for(var j=0;j<=n;j++)dp[0][j]=j;
+  for(var i=1;i<=m;i++)for(var j=1;j<=n;j++){
+    dp[i][j]=a[i-1]===b[j-1]?dp[i-1][j-1]:1+Math.min(dp[i-1][j],dp[i][j-1],dp[i-1][j-1]);
+  }
+  return dp[m][n];
+}
+function simScore(a,b){
+  var na=a.toLowerCase().trim(),nb=b.toLowerCase().trim();
+  var maxLen=Math.max(na.length,nb.length);
+  if(maxLen===0)return 1;
+  return 1-levenshtein(na,nb)/maxLen;
+}
+function agruparSimilares(nomes,threshold){
+  var grupos=[],usado=[];
+  nomes.forEach(function(n,i){
+    if(usado[i])return;
+    var grupo=[n];usado[i]=true;
+    nomes.forEach(function(m,j){
+      if(i===j||usado[j])return;
+      if(simScore(n,m)>=threshold){grupo.push(m);usado[j]=true;}
+    });
+    if(grupo.length>1)grupos.push(grupo);
+  });
+  return grupos;
+}
+function contarRegistros(campo,nome){
+  return dados.filter(function(r){return r[campo]===nome;}).length;
+}
+function renderAdmConciliar(cont){
+  var categorias=[
+    {label:'Clientes',campo:'Cliente',lista:CLI_HON,listaNome:'CLI_HON'},
+    {label:'Empresas RT',campo:'Fornecedor',lista:RT_EMPRESAS,listaNome:'RT_EMPRESAS'},
+    {label:'Despesas',campo:'Despesa',lista:DESPESAS,listaNome:'DESPESAS'},
+  ];
+  var threshold=0.72;
+  var totalGrupos=0;
+  categorias.forEach(function(cat){
+    var grupos=agruparSimilares(cat.lista,threshold);
+    totalGrupos+=grupos.length;
+    var sec=document.createElement('div');
+    sec.style.cssText='margin-bottom:28px';
+    var header=document.createElement('div');
+    header.style.cssText='display:flex;align-items:center;gap:10px;margin-bottom:12px';
+    header.innerHTML='<span style="font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:#555">'+cat.label+'</span>'
+      +(grupos.length>0?'<span style="background:#fff3cd;color:#856404;font-size:11px;font-weight:700;padding:2px 8px;border-radius:8px">'+grupos.length+' grupo(s) para revisar</span>':'<span style="background:#d4edda;color:#155724;font-size:11px;font-weight:700;padding:2px 8px;border-radius:8px">✓ Limpo</span>');
+    sec.appendChild(header);
+    if(grupos.length===0){cont.appendChild(sec);return;}
+    grupos.forEach(function(grupo,gi){
+      var card=document.createElement('div');
+      card.style.cssText='background:#fff;border:1.5px solid #f0c36d;border-radius:12px;padding:16px 18px;margin-bottom:12px';
+      // Monta opções com contagem
+      var optsHtml=grupo.map(function(nome){
+        var cnt=contarRegistros(cat.campo,nome);
+        return '<option value="'+nome.replace(/"/g,'&quot;')+'">'+nome+' ('+cnt+' registro'+(cnt!==1?'s':'')+')</option>';
+      }).join('');
+      card.innerHTML=
+        '<div style="font-size:11px;color:#aaa;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Nomes similares detectados</div>'+
+        '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">'+
+          grupo.map(function(nome){
+            var cnt=contarRegistros(cat.campo,nome);
+            return '<span style="background:#f8f8f8;border:1px solid #e0e0e0;border-radius:6px;padding:4px 10px;font-size:12px;font-weight:600">'+nome+' <span style="color:#aaa;font-weight:400">('+cnt+')</span></span>';
+          }).join('')+
+        '</div>'+
+        '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">'+
+          '<label style="font-size:12px;color:#666;font-weight:600;white-space:nowrap">Nome canônico:</label>'+
+          '<select id="concil-sel-'+cat.listaNome+'-'+gi+'" style="flex:1;min-width:180px;padding:6px 10px;border:1.5px solid #ddd;border-radius:7px;font-size:13px">'+optsHtml+'</select>'+
+          '<button onclick="admUnificar(\''+cat.campo+'\',\''+cat.listaNome+'\',\'concil-sel-'+cat.listaNome+'-'+gi+'\')" style="padding:7px 16px;background:#1a1a1a;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">Unificar</button>'+
+        '</div>';
+      sec.appendChild(card);
+    });
+    cont.appendChild(sec);
+  });
+  if(totalGrupos===0){
+    var ok=document.createElement('div');
+    ok.style.cssText='text-align:center;padding:40px 20px;color:#aaa;font-size:13px';
+    ok.innerHTML='<div style="font-size:36px;margin-bottom:12px">✅</div><strong>Tudo limpo!</strong><br>Nenhum nome similar encontrado nas 3 categorias.';
+    cont.appendChild(ok);
+  }
+}
+function admUnificar(campo,listaNome,selId){
+  var sel=document.getElementById(selId);if(!sel)return;
+  var canonico=sel.value;if(!canonico)return;
+  // Pegar todos os nomes do select para saber quais unificar
+  var variantes=Array.from(sel.options).map(function(o){return o.value;}).filter(function(v){return v!==canonico;});
+  if(!variantes.length){showToast('Selecione um nome diferente para unificar','#e67e22');return;}
+  var lista=listaNome==='CLI_HON'?CLI_HON:listaNome==='RT_EMPRESAS'?RT_EMPRESAS:DESPESAS;
+  var total=0;
+  dados.forEach(function(r){
+    if(variantes.indexOf(r[campo])>=0){r[campo]=canonico;total++;}
+  });
+  variantes.forEach(function(v){var i=lista.indexOf(v);if(i>=0)lista.splice(i,1);});
+  salvarLocal();rendAdmin();
+  showToast('✓ '+total+' registro(s) unificados para "'+canonico+'"','#27ae60',3500);
+}
+var aLabels={conciliar:'🔗 Conciliar Nomes',cli_hon:'Clientes',rt_emp:'RT',origens_e:'Origens de Entrada',origens_s:'Origens de Saída',aliases:'Aliases de Conciliação'};
 function rendAdmin(){
   var tabs=R('adm-tabs');if(!tabs)return;tabs.innerHTML='';
   Object.keys(aLabels).forEach(function(k){
@@ -1798,8 +1895,9 @@ function rendAdmin(){
   var srchClr=document.createElement('button');srchClr.innerHTML='&#10005;';srchClr.style.cssText='background:transparent;border:none;cursor:pointer;font-size:12px;color:#aaa;display:'+(admSearch?'block':'none')+';padding:0';
   srchClr.addEventListener('click',function(){admSearch='';rendAdmin();});
   srchWrap.appendChild(srchIcon);srchWrap.appendChild(srchInp);srchWrap.appendChild(srchClr);
-  cont.appendChild(srchWrap);
-  if(aTab==='cli_hon')renderAdmList(cont,'CLI_HON',CLI_HON,'Cliente');
+  if(aTab!=='conciliar')cont.appendChild(srchWrap);
+  if(aTab==='conciliar')renderAdmConciliar(cont);
+  else if(aTab==='cli_hon')renderAdmList(cont,'CLI_HON',CLI_HON,'Cliente');
   else if(aTab==='rt_emp')renderAdmList(cont,'RT_EMPRESAS',RT_EMPRESAS,'RT');
   else if(aTab==='origens_e')renderAdmOrigensE(cont);
   else if(aTab==='origens_s')renderAdmOrigensS(cont);
