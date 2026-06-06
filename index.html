@@ -3682,8 +3682,10 @@ function concilAprovar(ci){
     var found = concilBuscarDado(c);
     var d = found ? found.d : null;
     if(d){
-      c.original={Data:d.Data,Ano:d.Ano,Mês:d.Mês,pago:d.pago,conciliado:d.conciliado,conciliado_em:d.conciliado_em};
+      c.original={Data:d.Data,Ano:d.Ano,Mês:d.Mês,pago:d.pago,conciliado:d.conciliado,conciliado_em:d.conciliado_em,'Nota Fiscal':d['Nota Fiscal'],nf_emitida:d.nf_emitida};
       d.conciliado=true; d.conciliado_em=new Date().toISOString().slice(0,10); d.pago=true;
+      // Copiar NF da transação importada para o registro existente
+      if(c.tx.nf&&c.tx.nf!=='A Definir'){d['Nota Fiscal']=c.tx.nf;d.nf_emitida=false;}
       var txData=c.tx.data;
       if(txData){
         d.Data=txData;
