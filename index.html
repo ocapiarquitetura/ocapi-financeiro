@@ -2209,8 +2209,8 @@ function updBulkBar(){
       +'<option value="1">✓ NF emitida</option>'
       +'<option value="0">✗ NF não emitida</option>'
     +'</select>'
-    +'<button onclick="bulkDelete()" style="'+btnStyle+'background:#c0392b;color:#fff">🗑 Excluir</button>'
-    +'<button onclick="hSelected.clear();rendHist();updBulkBar();" style="'+btnStyle+'background:#333;color:#aaa">✕</button>';
+    +'<button onclick="bulkDelete()" style="'+btnStyle+';background:#e74c3c;color:#fff">🗑 Excluir</button>'
+    +'<button onclick="hSelected.clear();rendHist();updBulkBar();" style="'+btnStyle+';background:#333;color:#aaa">✕</button>';
 }
 function bulkDelete(){
   var n=hSelected.size;
@@ -2846,11 +2846,17 @@ function impDividirRT(i){
     var soma = window._impDivPartes.reduce(function(a,p){return a+(p.valor||0);},0);
     if(Math.abs(soma - window._impDivTotal)>=0.01){showToast('A soma dos valores não bate com o total','#c0392b');return;}
     var base = impTxs[idx];
+    var novosClientes=[];
+    window._impDivPartes.forEach(function(p){
+      if(p.cliente&&CLI_HON.indexOf(p.cliente)<0){CLI_HON.push(p.cliente);novosClientes.push(p.cliente);}
+    });
+    if(novosClientes.length){salvarLocal();}
     var novas = window._impDivPartes.map(function(p){return Object.assign({},base,{cliente:p.cliente,valor:p.valor,_divisoes:null});});
     impTxs.splice(idx,1,...novas);
     overlay.remove();
     impRenderLista();
-    showToast('Lançamento dividido em '+novas.length+' partes','#27ae60',3000);
+    var msg='Lançamento dividido em '+novas.length+' partes'+(novosClientes.length?' · '+novosClientes.length+' novo(s) cliente(s) adicionado(s)':'');
+    showToast(msg,'#27ae60',3500);
   };
 
   box.addEventListener('input', function(){
