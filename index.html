@@ -906,7 +906,7 @@ function salvarLocal(){salvarFirebase();}
 function salvarFirebase(){
   if(!fbAuth||!fbAuth.currentUser){return;}
   var cfg={CLI_HON:CLI_HON,RT_EMPRESAS:RT_EMPRESAS,DESPESAS:DESPESAS,DESP_MAP:DESP_MAP,ORIGENS_ENTRADA:ORIGENS_ENTRADA,ORIGENS_SAIDA:ORIGENS_SAIDA,ORIGENS_SAIDA_TIPO:ORIGENS_SAIDA_TIPO,ALIASES:ALIASES};
-  var payload=JSON.parse(JSON.stringify({dados:dados,config:cfg,conciliacoes:conciliacoes,imp_historico:imp_historico,concilNomesIgnorados:concilNomesIgnorados,migrated:true}));
+  var payload=JSON.parse(JSON.stringify({dados:dados,config:cfg,conciliacoes:conciliacoes,imp_historico:imp_historico,concilNomesIgnorados:concilNomesIgnorados,migrated:true,migrated_cat_v2:true}));
   var payloadBytes=new Blob([JSON.stringify(payload)]).size;
   var LIMIT=1000000;
   if(payloadBytes>LIMIT*0.9){
@@ -921,9 +921,9 @@ function salvarFirebase(){
 var CLI_HON=["Aelson e Conceição", "Aguinado e Magda", "Aguinaldo e Magda", "Amália e Emerson", "Ana Carolina Fonseca", "Ana Luiza e Eduardo", "Ana Paula e André", "Beatriz e Bernardo", "Brenda Souza", "Bruna e Leonardo", "Bárbara Feitosa Kumon", "Camila Gomes", "Carmen e José", "Christiane e Lucas", "Condomínio Edifício Arantes", "Condomínio Edifício Maria Flávia", "Cynthia e Ramon", "Daniela e Daniel", "Daniela e Guilherme", "Danielle e Marcelo", "Edifício Antares", "Edifício Maria Flávia", "Edifício Mônica Salles", "Edifício Riviera", "Edifício Teófilo de Melo", "Eduardo e Terezinha", "Elaine Fernandes", "Flora e Bruno", "Fábio Barreto", "Fátima", "Fátima e Ricardo", "Humberto e Regina", "Iara e Guilherme", "Isabela e Rafael", "Isabella e Humberto", "Joana e Rafael", "Juliana e Daniel", "Juliana e Máximo", "Junia e Neusa", "Kamylla e Felipe", "Kellen", "Kelly e José Carlos", "Letícia e Marcelo", "Logás", "Logás Sede Unicenter", "Lorena Lustosa", "Luana Cordeiro", "Luciana Moreira", "Maisa e Wander", "Manuela e Arthur", "Marcinha e Eduardo", "Maria Silvia Gonzaga", "Mariana e Gustavo", "Marilene Carneiro", "Marina e Daniel", "Marina e Marcelo", "Marina e Rodrigo", "Paula e Rodrigo", "Pedro Bartolomeu Mesa", "Pedro e Aline", "Pedro e Chris", "Pedro e Iara", "Renata e Rafael", "Shirley Emerick", "Sítio Pequeno Bosque", "Terezinha Magalhães", "Thiago Portes", "Tânia Carvalho", "Vanessa e Mario Pedro"];
 var RT_EMPRESAS=["A de Arte", "ABC da Construção Lagoa Santa", "Aba Vasos", "Abtah", "Adalberto Eletricista", "Alexandre Lima Fine Art", "Amém Casa", "América Móveis", "Artefato Marcenaria", "Atelier Cortinas e Persianas", "Atelier do Mármore", "Ateliê Cortinas e Persianas", "Atellier do Mármore Romildo", "Bellar", "Belíssimo Valvee", "Bontempo", "Botteh", "Cama House", "Casa Mastria", "Casadorada", "Conceito Requinte", "Cookeletroraro", "Cortinas Mangabeiras", "Decorar.it", "Directa", "Divinal Vidros", "Estofados Odilon", "FORNECEDOR", "Fast Shop", "Fernando Divinal", "Galeria Murilo Castro", "Gallery", "Garden Piscinas", "Gayatri", "Gayatri Interiores", "Hall Decor", "Henrique Murta", "Iluminar", "In8 Home", "Infinito Vidros", "Innovar", "JL Esquadrias", "João Móveis", "João Águia Móveis", "Kinder Design", "Letícia Almeida", "Lidea", "Lider Interiores", "Luciana Estofados", "Ludi Móveis", "Maderlac", "Marina Jabour", "Marmoratta", "Minas Mármores e Granitos", "Mobília", "Mundo dos Tapetes", "Murilo Pedreiro", "Natuzzi", "Neuton Polimento", "Peixoto Vidros", "Pormade", "Portobello", "Prima Arte Molduras", "Prima Linea", "Projeto Um", "Resiplan", "Roberto Restaurações", "Santa Cruz Acabamentos", "Sergio Polimento", "Solid Pisos", "Specially Móveis de Alumínio", "São Romão", "Sérgio Polimento", "Templuz", "Terrazzo", "Terrazzo Construtora", "Tom Sobre Tom", "Toptec", "Ualasce Ar Condicionado", "Uno Design da Luz", "Vidroseg", "Vintage", "Vintage Vidros", "Voktum"];
 var DESPESAS=["Alexandre Lima Fotógrafo", "Processo Anna", "Pró-labore", "Arquiteta Marina", "Arquiteta Marina Extras", "Arquiteta Marina Obra Dalila e Gabriel", "Arquiteta Nathália", "Arquiteta Thamires", "Arquiteta Vanessa", "Arquiteto Edson", "Boleto Cau Modernos", "CJF", "Cau Empresa", "Cau Pessoal", "Celular", "Contabilidade", "Darf", "Designer Anna Maria", "Designer Anna Maria Extras", "Designer Anna Maria Hora Extra", "Dropbox", "Henrique Queiroga Fotógrafo", "Hostmidia", "Mutabile", "Simples Nacional", "Site"];
-var ORIGENS_SAIDA=["Imposto", "Pagamento de Folha", "Contabilidade", "Marketing", "Fornecedores", "Outros"];
-var ORIGENS_SAIDA_TIPO={}; // {'Imposto':'fixo', 'Pagamento de Folha':'fixo', ...}
-var DESP_MAP={"Imposto": ["Simples Nacional", "Darf", "Cau Empresa", "Cau Pessoal", "Boleto Cau Modernos", "CJF"], "Pagamento de Folha": ["Arquiteta Marina", "Arquiteta Marina Extras", "Arquiteta Marina Obra Dalila e Gabriel", "Arquiteta Nathália", "Arquiteta Thamires", "Arquiteta Vanessa", "Arquiteto Edson"], "Contabilidade": ["Contabilidade", "Mutabile"], "Marketing": ["Alexandre Lima Fotógrafo", "Henrique Queiroga Fotógrafo", "Designer Anna Maria", "Designer Anna Maria Extras", "Designer Anna Maria Hora Extra", "Hostmidia", "Site", "Dropbox", "Celular"], "Fornecedores": [], "Outros": []};
+var ORIGENS_SAIDA=["Taxas Regulatórias","Impostos sobre Receita","Folha Fixa","Mão de Obra por Projeto","Contabilidade","Infraestrutura Digital","Marketing por Projeto","Fornecedores","Outros"];
+var ORIGENS_SAIDA_TIPO={"Taxas Regulatórias":"fixo","Impostos sobre Receita":"variavel","Folha Fixa":"fixo","Mão de Obra por Projeto":"variavel","Contabilidade":"fixo","Infraestrutura Digital":"fixo","Marketing por Projeto":"variavel","Fornecedores":"variavel","Outros":""};
+var DESP_MAP={"Taxas Regulatórias":["Cau Empresa","Cau Pessoal","Boleto Cau Modernos","CJF"],"Impostos sobre Receita":["Simples Nacional","Darf"],"Folha Fixa":["Arquiteta Marina","Arquiteta Nathália","Arquiteta Thamires","Arquiteta Vanessa","Arquiteto Edson","Pró-labore"],"Mão de Obra por Projeto":["Arquiteta Marina Extras","Arquiteta Marina Obra Dalila e Gabriel"],"Contabilidade":["Contabilidade","Mutabile"],"Infraestrutura Digital":["Hostmidia","Site","Dropbox","Celular"],"Marketing por Projeto":["Alexandre Lima Fotógrafo","Henrique Queiroga Fotógrafo","Designer Anna Maria","Designer Anna Maria Extras","Designer Anna Maria Hora Extra"],"Fornecedores":[],"Outros":["Processo Anna"]};
 var ORIGENS_ENTRADA=["Cliente", "RT"];
 var ALIASES=[]; // [{extrato:'TEREZA',sistema:'Terezinha Magalhães'}]
 var conciliacoes=[]; // [{tx:{...}, match:{idx,d}, status:'pendente'}]
@@ -2813,6 +2813,73 @@ function doLogout(){
   if(fbUnsub)fbUnsub();
   fbAuth.signOut();
 }
+/* ── Migração V2: reclassificação contábil de categorias ── */
+function migrarCategoriasV2(fdata){
+  if(fdata&&fdata.migrated_cat_v2)return false;
+  // Mapeamento despesa → nova origem
+  var mapaDesp={
+    'Simples Nacional':'Impostos sobre Receita','Darf':'Impostos sobre Receita',
+    'Cau Empresa':'Taxas Regulatórias','Cau Pessoal':'Taxas Regulatórias',
+    'Boleto Cau Modernos':'Taxas Regulatórias','CJF':'Taxas Regulatórias',
+    'Arquiteta Marina':'Folha Fixa','Arquiteta Nathália':'Folha Fixa',
+    'Arquiteta Thamires':'Folha Fixa','Arquiteta Vanessa':'Folha Fixa',
+    'Arquiteto Edson':'Folha Fixa','Pró-labore':'Folha Fixa',
+    'Arquiteta Marina Extras':'Mão de Obra por Projeto',
+    'Arquiteta Marina Obra Dalila e Gabriel':'Mão de Obra por Projeto',
+    'Contabilidade':'Contabilidade','Mutabile':'Contabilidade',
+    'Hostmidia':'Infraestrutura Digital','Site':'Infraestrutura Digital',
+    'Dropbox':'Infraestrutura Digital','Celular':'Infraestrutura Digital',
+    'Alexandre Lima Fotógrafo':'Marketing por Projeto',
+    'Henrique Queiroga Fotógrafo':'Marketing por Projeto',
+    'Designer Anna Maria':'Marketing por Projeto',
+    'Designer Anna Maria Extras':'Marketing por Projeto',
+    'Designer Anna Maria Hora Extra':'Marketing por Projeto',
+    'Processo Anna':'Outros'
+  };
+  // Fallback por categoria antiga
+  var mapaOrig={
+    'Imposto':'Impostos sobre Receita',
+    'Pagamento de Folha':'Folha Fixa',
+    'Marketing':'Marketing por Projeto'
+  };
+  var changed=0;
+  dados.forEach(function(r){
+    if(r['Movimentação']!=='Saída')return;
+    var novaOrig=mapaDesp[r.Despesa||'']||mapaOrig[r.Origem||''];
+    if(novaOrig&&r.Origem!==novaOrig){r.Origem=novaOrig;changed++;}
+  });
+  // Reset categories to new values (override Firebase stale config)
+  ORIGENS_SAIDA.length=0;
+  ['Taxas Regulatórias','Impostos sobre Receita','Folha Fixa','Mão de Obra por Projeto','Contabilidade','Infraestrutura Digital','Marketing por Projeto','Fornecedores','Outros'].forEach(function(o){ORIGENS_SAIDA.push(o);});
+  Object.keys(DESP_MAP).forEach(function(k){delete DESP_MAP[k];});
+  ['Taxas Regulatórias','Cau Empresa','Cau Pessoal','Boleto Cau Modernos','CJF','|',
+   'Impostos sobre Receita','Simples Nacional','Darf','|',
+   'Folha Fixa','Arquiteta Marina','Arquiteta Nathália','Arquiteta Thamires','Arquiteta Vanessa','Arquiteto Edson','Pró-labore','|',
+   'Mão de Obra por Projeto','Arquiteta Marina Extras','Arquiteta Marina Obra Dalila e Gabriel','|',
+   'Contabilidade','Contabilidade','Mutabile','|',
+   'Infraestrutura Digital','Hostmidia','Site','Dropbox','Celular','|',
+   'Marketing por Projeto','Alexandre Lima Fotógrafo','Henrique Queiroga Fotógrafo','Designer Anna Maria','Designer Anna Maria Extras','Designer Anna Maria Hora Extra','|',
+   'Fornecedores','|','Outros','Processo Anna'];
+  // Rebuild DESP_MAP from new structure
+  var newDespMap={
+    'Taxas Regulatórias':['Cau Empresa','Cau Pessoal','Boleto Cau Modernos','CJF'],
+    'Impostos sobre Receita':['Simples Nacional','Darf'],
+    'Folha Fixa':['Arquiteta Marina','Arquiteta Nathália','Arquiteta Thamires','Arquiteta Vanessa','Arquiteto Edson','Pró-labore'],
+    'Mão de Obra por Projeto':['Arquiteta Marina Extras','Arquiteta Marina Obra Dalila e Gabriel'],
+    'Contabilidade':['Contabilidade','Mutabile'],
+    'Infraestrutura Digital':['Hostmidia','Site','Dropbox','Celular'],
+    'Marketing por Projeto':['Alexandre Lima Fotógrafo','Henrique Queiroga Fotógrafo','Designer Anna Maria','Designer Anna Maria Extras','Designer Anna Maria Hora Extra'],
+    'Fornecedores':[],
+    'Outros':['Processo Anna']
+  };
+  Object.keys(newDespMap).forEach(function(k){DESP_MAP[k]=newDespMap[k];});
+  Object.keys(ORIGENS_SAIDA_TIPO).forEach(function(k){delete ORIGENS_SAIDA_TIPO[k];});
+  var newTipo={'Taxas Regulatórias':'fixo','Impostos sobre Receita':'variavel','Folha Fixa':'fixo','Mão de Obra por Projeto':'variavel','Contabilidade':'fixo','Infraestrutura Digital':'fixo','Marketing por Projeto':'variavel','Fornecedores':'variavel','Outros':''};
+  Object.keys(newTipo).forEach(function(k){ORIGENS_SAIDA_TIPO[k]=newTipo[k];});
+  console.log('Migração V2: '+changed+' lançamentos reclassificados.');
+  return true;
+}
+
 function mergeFirebaseData(fdata){
   if(fdata&&fdata.migrated){
     // Firebase é a fonte da verdade: usa diretamente, sem misturar DADOS_BASE
@@ -2856,6 +2923,11 @@ function mergeFirebaseData(fdata){
   // migração: registros importados com nf_emitida=true mas sem campo 'Nota Fiscal' → corrigir
   dados.forEach(function(r){if(r.fonte_import&&r.nf_emitida&&!r['Nota Fiscal']){r['Nota Fiscal']='Sim';r.nf_emitida=false;migrou=true;}});
   if(migrou)salvarLocal();
+  // Migração V2: reclassificação contábil
+  if(migrarCategoriasV2(fdata)){
+    populateOrigensS&&populateOrigensS();
+    setTimeout(function(){salvarLocal();},800);
+  }
 }
 
 // Add Enter key support for login
