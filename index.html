@@ -344,11 +344,11 @@ tr.row-pago td{opacity:.75}
     <div class="dash-filter">
       <span style="font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#aaa">Per&iacute;odo</span>
       <select id="dash-mode" onchange="onDashModeChange()">
-        <option value="mes_atual">M&ecirc;s Atual</option>
-        <option value="mes_ant">M&ecirc;s Passado</option>
-        <option value="todo">Todo o per&iacute;odo</option>
-        <option value="ano" selected>Ano</option>
         <option value="custom">Personalizado</option>
+        <option value="ano" selected>Ano</option>
+        <option value="mes_ant">M&ecirc;s Passado</option>
+        <option value="mes_atual">M&ecirc;s Atual</option>
+        <option value="todo">Todo o per&iacute;odo</option>
       </select>
       <span id="dash-ano-wrap" style="display:flex;align-items:center;gap:8px">
         <select id="dash-ano" onchange="onDashAnoChange()"></select>
@@ -1430,7 +1430,7 @@ function rendChartDespCat(divId,legId,dd){
 }
 function rendChartBarras(divId,dd){
   var container=R(divId);if(!container)return;
-  var W=900,H=220,PL=70,PR=20,PT=16,PB=38,cW=W-PL-PR,cH=H-PT-PB;
+  var W=900,H=300,PL=70,PR=20,PT=16,PB=38,cW=W-PL-PR,cH=H-PT-PB;
   var meses=[1,2,3,4,5,6,7,8,9,10,11,12];
   var ML=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
   var rec=meses.map(function(m){return (dd||[]).filter(function(r){return r['Movimentacao']==='Entrada'&&getMesNum(r)===m;}).reduce(function(s,r){return s+(parseFloat(r.Valor)||0);},0);});
