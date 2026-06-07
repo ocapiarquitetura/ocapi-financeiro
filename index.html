@@ -172,6 +172,9 @@ tr.row-pago td{opacity:.75}
 .mob-nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 0 8px;font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#999;cursor:pointer;gap:4px;border-bottom:2px solid transparent;transition:all .15s}
 .mob-nav-item svg{width:20px;height:20px}.mob-nav-item.act{color:#1a1a1a;border-bottom-color:#1a1a1a}
 .fab{display:none}
+#desk-fab{position:fixed;bottom:32px;right:32px;width:52px;height:52px;border-radius:50%;background:#1a1a1a;color:#fff;border:none;font-size:26px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 18px rgba(0,0,0,.28);z-index:700;transition:background .15s,transform .15s;line-height:1}
+#desk-fab:hover{background:#333;transform:scale(1.08)}
+@media(max-width:768px){#desk-fab{display:none}}
 .fab:active{transform:scale(.93)}
 .sheet-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:500;display:flex;align-items:flex-end;opacity:0;pointer-events:none;transition:opacity .25s}
 .sheet-overlay.open{opacity:1;pointer-events:all}
@@ -284,26 +287,26 @@ tr.row-pago td{opacity:.75}
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
         <span class="sb-link-label">Dashboard</span>
       </a>
-      <a class="sb-link" onclick="showPage('p-resultados',this)">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
-        <span class="sb-link-label">Resultados</span>
-      </a>
       <a class="sb-link" onclick="showPage('p-lancar',this)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        <span class="sb-link-label">Lan&ccedil;amento</span>
+        <span class="sb-link-label">Lan&ccedil;ar</span>
       </a>
       <a class="sb-link" onclick="showPage('p-hist',this)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
-        <span class="sb-link-label">Controle</span>
+        <span class="sb-link-label">Movimenta&ccedil;&otilde;es</span>
       </a>
       <a class="sb-link" onclick="showPage('p-alertas',this)" style="position:relative">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
         <span class="sb-link-label">Alertas</span>
         <span id="sb-alertas-badge" style="display:none;position:absolute;top:6px;right:8px;background:#c0392b;color:#fff;border-radius:10px;font-size:10px;font-weight:700;padding:1px 6px;min-width:18px;text-align:center"></span>
       </a>
+      <a class="sb-link" onclick="showPage('p-resultados',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+        <span class="sb-link-label">Resultados</span>
+      </a>
       <a class="sb-link" onclick="showPage('p-importar',this)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-        <span class="sb-link-label">Importar Extrato</span>
+        <span class="sb-link-label">Extrato</span>
       </a>
       <a class="sb-link" id="sb-concil-link" onclick="showPage('p-concil',this)" style="position:relative">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
@@ -311,8 +314,8 @@ tr.row-pago td{opacity:.75}
         <span id="sb-concil-badge" style="display:none;position:absolute;top:6px;right:8px;background:#e67e22;color:#fff;border-radius:10px;font-size:10px;font-weight:700;padding:1px 6px;min-width:18px;text-align:center"></span>
       </a>
       <a class="sb-link" onclick="showPage('p-admin',this)">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 1 0-16 0"/></svg>
-        <span class="sb-link-label">Admin</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <span class="sb-link-label">Configura&ccedil;&otilde;es</span>
       </a>
 
     </div>
@@ -4313,5 +4316,6 @@ function impVoltarStep1(){
   }
 })();
 </script>
+<button id="desk-fab" onclick="openSheet()" title="Novo lançamento">+</button>
 </body>
 </html>
