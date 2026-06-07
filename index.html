@@ -1433,7 +1433,7 @@ function rendChartDespCat(divId,legId,dd){
 }
 function rendChartBarras(divId,dd){
   var container=R(divId);if(!container)return;
-  var W=900,H=300,PL=70,PR=20,PT=16,PB=38,cW=W-PL-PR,cH=H-PT-PB;
+  var W=1200,H=300,PL=60,PR=10,PT=16,PB=38,cW=W-PL-PR,cH=H-PT-PB;
   var meses=[1,2,3,4,5,6,7,8,9,10,11,12];
   var ML=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
   var rec=meses.map(function(m){return (dd||[]).filter(function(r){return r['Movimentacao']==='Entrada'&&getMesNum(r)===m;}).reduce(function(s,r){return s+(parseFloat(r.Valor)||0);},0);});
@@ -1442,8 +1442,8 @@ function rendChartBarras(divId,dd){
   cus=meses.map(function(m,i){return (dd||[]).filter(function(r){return r['Movimentação']==='Saída'&&getMesNum(r)===m;}).reduce(function(s,r){return s+(parseFloat(r.Valor)||0);},0);});
   var maxV=Math.max.apply(null,rec.concat(cus).concat([1]))*1.18;
   var slotW=cW/12;
-  var bW=Math.min(slotW*0.36,28);
-  var gap=bW*0.35;
+  var bW=Math.min(slotW*0.38,36);
+  var gap=bW*0.28;
   var yS=function(v){return PT+cH*(1-(v/maxV));};
   var h='';
   [0,.25,.5,.75,1].forEach(function(t){
