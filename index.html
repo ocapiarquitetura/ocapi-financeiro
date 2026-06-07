@@ -344,13 +344,13 @@ tr.row-pago td{opacity:.75}
     <div class="dash-filter">
       <span style="font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#aaa">Per&iacute;odo</span>
       <select id="dash-mode" onchange="onDashModeChange()">
-        <option value="mes_atual" selected>M&ecirc;s Atual</option>
+        <option value="mes_atual">M&ecirc;s Atual</option>
         <option value="mes_ant">M&ecirc;s Passado</option>
         <option value="todo">Todo o per&iacute;odo</option>
-        <option value="ano">Ano</option>
+        <option value="ano" selected>Ano</option>
         <option value="custom">Personalizado</option>
       </select>
-      <span id="dash-ano-wrap" style="display:none;align-items:center;gap:8px">
+      <span id="dash-ano-wrap" style="display:flex;align-items:center;gap:8px">
         <select id="dash-ano" onchange="onDashAnoChange()"></select>
       </span>
       <span id="dash-custom-wrap" style="display:none;align-items:center;gap:8px">
@@ -363,25 +363,19 @@ tr.row-pago td{opacity:.75}
     
   </div>
     <div class="chart-row">
-      <div class="chart-card">
-        <div class="chart-title">Faturamento por Mês (Todo Período)</div>
-        <div id="ch-rec-div"></div>
-        <div class="chart-leg" id="leg-rec"></div>
-      </div>
-      <div class="chart-card">
-        <div class="chart-title">Custo por Mês (Todo Período)</div>
-        <div id="ch-desp-div"></div>
-        <div class="chart-leg" id="leg-desp"></div>
+      <div class="chart-card" style="flex:1">
+        <div class="chart-title">Receita × Custo por Mês</div>
+        <div id="ch-barras-div"></div>
       </div>
     </div>
     <div class="chart-row">
       <div class="chart-card">
-        <div class="chart-title">Resultado por Mês 2026 (Entrada − Saída)</div>
+        <div class="chart-title">Resultado por Mês (Entrada − Saída)</div>
         <div id="ch-res-div"></div>
         <div class="chart-leg" id="leg-res"></div>
       </div>
       <div class="chart-card">
-        <div class="chart-title">Fluxo de Caixa Acumulado 2026</div>
+        <div class="chart-title">Fluxo de Caixa Acumulado</div>
         <div id="ch-fluxo-div"></div>
         <div class="chart-leg" id="leg-fluxo"></div>
       </div>
@@ -931,7 +925,7 @@ var imp_historico=[]; // [{id,data,arquivo,importados,conciliacoes,aliases:[]}]
 var concilNomesIgnorados=[]; // [['Nome A','Nome B'], ...] pares ignorados na aba Conciliar Nomes
 var MES_NUM={'Janeiro':1,'Fevereiro':2,'Março':3,'Abril':4,'Maio':5,'Junho':6,'Julho':7,'Agosto':8,'Setembro':9,'Outubro':10,'Novembro':11,'Dezembro':12};
 function getMesNum(r){var m=r.Mês;if(!m)return 0;if(typeof m==='number')return m;return MES_NUM[m]||parseInt(m)||0;}
-var dashMode='mes_atual',dashAno='',dashFrom='',dashTo='',dashUltPage=1;
+var dashMode='ano',dashAno=String(new Date().getFullYear()),dashFrom='',dashTo='',dashUltPage=1;
 var mobDashMode='mes_atual',mobDashFrom='',mobDashTo='';
 var dType='entrada',mType='entrada';
 var dOrigE='',dOrigS='',mOrigE='',mOrigS='';
@@ -1175,12 +1169,10 @@ function rendDash(){
     kpi('NF Emitida',nfPct+'%',nfPctCls,nfSimEnt+' de '+totalEnt+' entradas','')+
     alertKpi;
   setTimeout(function(){
-    var dd2026=dados.filter(function(r){return String(r.Ano)==='2026'||parseInt(r.Ano)===2026;});
-    rendChart('ch-rec-div','leg-rec','Entrada',dados);
-    rendChart('ch-desp-div','leg-desp','Saída',dados);
-    rendChartResultado('ch-res-div','leg-res',dd2026);
+    rendChartBarras('ch-barras-div',dd);
+    rendChartResultado('ch-res-div','leg-res',dd);
     rendChartPizza('ch-pizza-div','leg-pizza',dd);
-    rendChartFluxo('ch-fluxo-div','leg-fluxo',dd2026);
+    rendChartFluxo('ch-fluxo-div','leg-fluxo',dd);
     rendChartDespCat('ch-desp-cat-div','leg-desp-cat',dd);
     rendTop5(dd);
   },50);
@@ -1438,6 +1430,48 @@ function rendChartDespCat(divId,legId,dd){
   container.innerHTML='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 '+W+' '+H+'" width="'+W+'" height="'+H+'">'+h+'</svg>';
   if(R(legId))R(legId).innerHTML=main.map(function(s){return '<div class="chart-leg-item"><div class="chart-leg-dot" style="background:'+s.c+'"></div>'+s.l+' ('+Math.round(s.v/total*100)+'%)</div>';}).join('');
 }
+function rendChartBarras(divId,dd){
+  var container=R(divId);if(!container)return;
+  var W=900,H=220,PL=70,PR=20,PT=16,PB=38,cW=W-PL-PR,cH=H-PT-PB;
+  var meses=[1,2,3,4,5,6,7,8,9,10,11,12];
+  var ML=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  var rec=meses.map(function(m){return (dd||[]).filter(function(r){return r['Movimentação']==='Entrada'&&getMesNum(r)===m;}).reduce(function(s,r){return s+(parseFloat(r.Valor)||0);},0);});
+  var cus=meses.map(function(m){return (dd||[]).filter(function(r){return r['Movimentação']==='Saída'&&getMesNum(r)===m;}).reduce(function(s,r){return s+(parseFloat(r.Valor)||0);},0);});
+  var maxV=Math.max.apply(null,rec.concat(cus).concat([1]))*1.18;
+  var slotW=cW/12;
+  var bW=Math.min(slotW*0.36,28);
+  var gap=bW*0.35;
+  var yS=function(v){return PT+cH*(1-(v/maxV));};
+  var h='';
+  // grid lines
+  [0,.25,.5,.75,1].forEach(function(t){
+    var yy=yS(maxV*t);
+    h+='<line x1="'+PL+'" x2="'+(PL+cW)+'" y1="'+yy.toFixed(1)+'" y2="'+yy.toFixed(1)+'" stroke="#f0f0f0" stroke-width="1"/>';
+    h+='<text x="'+(PL-6)+'" y="'+(yy+4).toFixed(1)+'" text-anchor="end" font-size="10" fill="#bbb">'+fmtK(maxV*t)+'</text>';
+  });
+  // axis
+  h+='<line x1="'+PL+'" x2="'+PL+'" y1="'+PT+'" y2="'+(PT+cH)+'" stroke="#e8e8e8" stroke-width="1"/>';
+  meses.forEach(function(m,i){
+    var cx=PL+i*slotW+slotW/2;
+    // Receita bar
+    var rv=rec[i];var rH=rv>0?Math.max(cH*(rv/maxV),2):0;
+    var rX=cx-gap/2-bW;var rY=PT+cH-rH;
+    if(rv>0)h+='<rect x="'+rX.toFixed(1)+'" y="'+rY.toFixed(1)+'" width="'+bW.toFixed(1)+'" height="'+rH.toFixed(1)+'" rx="3" fill="#27ae60" opacity="0.85" style="cursor:pointer" onmouseover="showChartTip(event,'Receita '+ML[i]+': '+fmtK(rv)+'')" onmouseout="hideChartTip()"/>';
+    // Custo bar
+    var cv=cus[i];var cH2=cv>0?Math.max(cH*(cv/maxV),2):0;
+    var cX=cx+gap/2;var cY=PT+cH-cH2;
+    if(cv>0)h+='<rect x="'+cX.toFixed(1)+'" y="'+cY.toFixed(1)+'" width="'+bW.toFixed(1)+'" height="'+cH2.toFixed(1)+'" rx="3" fill="#e74c3c" opacity="0.8" style="cursor:pointer" onmouseover="showChartTip(event,'Custo '+ML[i]+': '+fmtK(cv)+'')" onmouseout="hideChartTip()"/>';
+    // label
+    h+='<text x="'+cx.toFixed(1)+'" y="'+(PT+cH+16)+'" text-anchor="middle" font-size="10" fill="#aaa">'+ML[i]+'</text>';
+  });
+  // legend
+  h+='<rect x="'+(PL+cW-130)+'" y="'+PT+'" width="10" height="10" rx="2" fill="#27ae60" opacity="0.85"/>';
+  h+='<text x="'+(PL+cW-116)+'" y="'+(PT+9)+'" font-size="10" fill="#666">Receita</text>';
+  h+='<rect x="'+(PL+cW-70)+'" y="'+PT+'" width="10" height="10" rx="2" fill="#e74c3c" opacity="0.8"/>';
+  h+='<text x="'+(PL+cW-56)+'" y="'+(PT+9)+'" font-size="10" fill="#666">Custo</text>';
+  container.innerHTML='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 '+W+' '+H+'" width="100%" height="'+H+'">'+h+'</svg>';
+}
+
 function rendChart(divId,legId,mov,dd){
   var container=R(divId);if(!container)return;
   var W=600,H=200,PL=65,PR=15,PT=12,PB=35,cW=W-PL-PR,cH=H-PT-PB;
@@ -2745,9 +2779,9 @@ function importarExtrato(){
 }
 function init(){
   var anos=[...new Set(dados.map(function(r){return r.Ano?String(r.Ano):null;}).filter(Boolean))].sort(function(a,b){return b-a;});
-  if(anos.length&&!dashAno){dashAno=String(anos[0]);}
+  var anoAtual=String(new Date().getFullYear());
+  if(!dashAno){dashAno=anos.indexOf(anoAtual)>=0?anoAtual:(anos.length?anos[0]:'');}
   if(R('dash-ano'))R('dash-ano').innerHTML=anos.map(function(a){return '<option value="'+a+'"'+(String(a)===dashAno?' selected':'')+'>'+a+'</option>';}).join('');
-  // dashMode starts as 'mes_atual', ano-wrap stays hidden
   if(R('h-ano'))R('h-ano').innerHTML='<option value="">Ano</option>'+anos.map(function(a){return '<option>'+a+'</option>';}).join('');
   if(R('h-mes'))R('h-mes').innerHTML='<option value="">Mês</option>'+[['1','Jan'],['2','Fev'],['3','Mar'],['4','Abr'],['5','Mai'],['6','Jun'],['7','Jul'],['8','Ago'],['9','Set'],['10','Out'],['11','Nov'],['12','Dez']].map(function(m){return '<option value="'+m[0]+'">'+m[1]+'</option>';}).join('');
   var d1=R('d-data-1'),m1=R('m-data-1');if(d1)d1.value=today();if(m1)m1.value=today();
