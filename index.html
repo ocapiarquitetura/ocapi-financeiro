@@ -3108,13 +3108,14 @@ function mergeFirebaseData(fdata){
   }
   if(fdata&&fdata.config){
     var c=fdata.config;
-    if(c.CLI_HON)c.CLI_HON.forEach(function(v){if(CLI_HON.indexOf(v)<0)CLI_HON.push(v);});
-    if(c.RT_EMPRESAS)c.RT_EMPRESAS.forEach(function(v){if(RT_EMPRESAS.indexOf(v)<0)RT_EMPRESAS.push(v);});
-    if(c.DESPESAS)c.DESPESAS.forEach(function(v){if(DESPESAS.indexOf(v)<0)DESPESAS.push(v);});
-    if(c.DESP_MAP)Object.keys(c.DESP_MAP).forEach(function(k){if(!DESP_MAP[k])DESP_MAP[k]=[];c.DESP_MAP[k].forEach(function(v){if(DESP_MAP[k].indexOf(v)<0)DESP_MAP[k].push(v);});});
-    if(c.ORIGENS_ENTRADA)c.ORIGENS_ENTRADA.forEach(function(v){if(ORIGENS_ENTRADA.indexOf(v)<0)ORIGENS_ENTRADA.push(v);});
-    if(c.ORIGENS_SAIDA)c.ORIGENS_SAIDA.forEach(function(v){if(ORIGENS_SAIDA.indexOf(v)<0)ORIGENS_SAIDA.push(v);});
-    if(c.ORIGENS_SAIDA_TIPO&&typeof c.ORIGENS_SAIDA_TIPO==='object'){Object.keys(c.ORIGENS_SAIDA_TIPO).forEach(function(k){ORIGENS_SAIDA_TIPO[k]=c.ORIGENS_SAIDA_TIPO[k];});}
+    // Firebase é fonte da verdade: substituição completa (não merge aditivo)
+    if(c.CLI_HON){CLI_HON.length=0;c.CLI_HON.forEach(function(v){CLI_HON.push(v);});}
+    if(c.RT_EMPRESAS){RT_EMPRESAS.length=0;c.RT_EMPRESAS.forEach(function(v){RT_EMPRESAS.push(v);});}
+    if(c.DESPESAS){DESPESAS.length=0;c.DESPESAS.forEach(function(v){DESPESAS.push(v);});}
+    if(c.DESP_MAP){Object.keys(DESP_MAP).forEach(function(k){delete DESP_MAP[k];});Object.keys(c.DESP_MAP).forEach(function(k){DESP_MAP[k]=c.DESP_MAP[k].slice();});}
+    if(c.ORIGENS_ENTRADA){ORIGENS_ENTRADA.length=0;c.ORIGENS_ENTRADA.forEach(function(v){ORIGENS_ENTRADA.push(v);});}
+    if(c.ORIGENS_SAIDA){ORIGENS_SAIDA.length=0;c.ORIGENS_SAIDA.forEach(function(v){ORIGENS_SAIDA.push(v);});}
+    if(c.ORIGENS_SAIDA_TIPO&&typeof c.ORIGENS_SAIDA_TIPO==='object'){Object.keys(ORIGENS_SAIDA_TIPO).forEach(function(k){delete ORIGENS_SAIDA_TIPO[k];});Object.assign(ORIGENS_SAIDA_TIPO,c.ORIGENS_SAIDA_TIPO);}
     if(c.ALIASES){ALIASES=c.ALIASES;}
   }
   if(fdata&&fdata.conciliacoes){conciliacoes=fdata.conciliacoes;}
