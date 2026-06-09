@@ -131,6 +131,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .filters input,.filters select{padding:8px 12px;border:1.5px solid var(--bord);border-radius:8px;font-size:13px;background:var(--card);outline:none}
 .tbl-wrap{background:var(--card);border-radius:14px;border:1px solid var(--bord);overflow:hidden}.sort-arrow{display:inline-block;margin-left:5px;font-size:10px;opacity:.3;transition:opacity .15s}.th-act .sort-arrow{opacity:1;color:#333}
 .tbl-head{display:flex;align-items:center;justify-content:space-between;padding:16px 24px;border-bottom:1px solid var(--bord)}
+.h-stat-pill{padding:5px 13px;border-radius:20px;font-size:12px;font-weight:600;border:1.5px solid var(--bord);background:transparent;color:#888;cursor:pointer;transition:all .15s}
+.h-stat-pill:hover{background:#f5f5f5}
+.h-stat-pill.act{background:#1a1a1a;color:#fff;border-color:#1a1a1a}
+.h-stat-pill.receber.act{background:#185FA5;border-color:#185FA5;color:#fff}
+.h-stat-pill.pagar.act{background:#BA7517;border-color:#BA7517;color:#fff}
+.h-stat-pill.pago.act{background:#3B6D11;border-color:#3B6D11;color:#fff}
+.h-tipo-tab{padding:11px 18px;font-size:13px;font-weight:600;border:none;border-bottom:2.5px solid transparent;background:transparent;color:#aaa;cursor:pointer;transition:all .15s}
+.h-tipo-tab:hover{color:#555}
+.h-tipo-tab.act{color:#1a1a1a;border-bottom-color:#1a1a1a}
+.h-tipo-tab.ent.act{color:#0F6E56;border-bottom-color:#1D9E75}
+.h-tipo-tab.sai.act{color:#993C1D;border-bottom-color:#D85A30}
 table{width:100%;border-collapse:collapse;font-size:13px}
 thead th{padding:11px 22px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--sub);background:#fafafa;border-bottom:1px solid var(--bord);cursor:pointer;user-select:none;white-space:nowrap}
 tbody td{padding:10px 22px;border-bottom:1px solid #f5f5f5;vertical-align:middle}
@@ -564,23 +575,28 @@ tr.row-pago td{opacity:.75}
       <input type="text" id="h-q" placeholder="&#128269; Buscar..." oninput="rendHist()" style="flex:1;min-width:160px;max-width:240px">
       <select id="h-ano" onchange="rendHist()" style="min-width:90px"></select>
       <select id="h-mes" onchange="rendHist()" style="min-width:90px"></select>
-      <!-- Toggle Tipo -->
-      <div style="display:flex;border:1.5px solid #e0e0e0;border-radius:10px;overflow:hidden;background:#f7f7f7">
-        <button id="h-tipo-todos"   onclick="setHMovFilt('')"       style="padding:7px 14px;border:none;background:#1a1a1a;color:#fff;font-size:12px;font-weight:700;cursor:pointer">Todos</button>
-        <button id="h-tipo-entrada" onclick="setHMovFilt('Entrada')" style="padding:7px 14px;border:none;background:transparent;color:#555;font-size:12px;font-weight:700;cursor:pointer">&#8599; Entrada</button>
-        <button id="h-tipo-saida"   onclick="setHMovFilt('Saída')"   style="padding:7px 14px;border:none;background:transparent;color:#555;font-size:12px;font-weight:700;cursor:pointer">&#8600; Sa&#237;da</button>
+      <div style="width:1px;height:24px;background:var(--bord);margin:0 2px"></div>
+      <!-- Status pills -->
+      <div style="display:flex;align-items:center;gap:6px">
+        <span style="font-size:12px;color:#aaa;font-weight:500">Status</span>
+        <button id="h-stat-todos"   onclick="setHFutFilt('')"        class="h-stat-pill act">Todos</button>
+        <button id="h-stat-receber" onclick="setHFutFilt('receber')" class="h-stat-pill receber">A receber</button>
+        <button id="h-stat-pagar"   onclick="setHFutFilt('pagar')"   class="h-stat-pill pagar">A pagar</button>
+        <button id="h-stat-pago"    onclick="setHFutFilt('pago')"    class="h-stat-pill pago">Pago</button>
       </div>
-      <!-- Toggle Status -->
-      <div style="display:flex;border:1.5px solid #e0e0e0;border-radius:10px;overflow:hidden;background:#f7f7f7">
-        <button id="h-stat-todos"    onclick="setHFutFilt('')"        style="padding:7px 14px;border:none;background:#1a1a1a;color:#fff;font-size:12px;font-weight:700;cursor:pointer">Todos</button>
-        <button id="h-stat-receber"  onclick="setHFutFilt('receber')" style="padding:7px 14px;border:none;background:transparent;color:#555;font-size:12px;font-weight:700;cursor:pointer">A Receber</button>
-        <button id="h-stat-pagar"    onclick="setHFutFilt('pagar')"   style="padding:7px 14px;border:none;background:transparent;color:#555;font-size:12px;font-weight:700;cursor:pointer">A Pagar</button>
-        <button id="h-stat-pago"     onclick="setHFutFilt('pago')"    style="padding:7px 14px;border:none;background:transparent;color:#555;font-size:12px;font-weight:700;cursor:pointer">Pago</button>
-      </div>
-      <button class="btn btn-out" onclick="clearHFilt()" style="white-space:nowrap">&#10005; Limpar</button>
+      <button class="btn btn-out" onclick="clearHFilt()" style="white-space:nowrap;margin-left:auto">&#10005; Limpar</button>
     </div>
     <div class="tbl-wrap">
-      <div class="tbl-head"><h3>Lan&ccedil;amentos</h3><span id="h-count" style="font-size:12px;color:#888"></span></div>
+      <!-- Tipo tabs -->
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;padding:0 8px 0 4px">
+        <div style="display:flex">
+          <button id="h-tipo-todos"   onclick="setHMovFilt('')"        class="h-tipo-tab act">Todos</button>
+          <button id="h-tipo-entrada" onclick="setHMovFilt('Entrada')" class="h-tipo-tab ent">&#8599; Entrada</button>
+          <button id="h-tipo-saida"   onclick="setHMovFilt('Saída')"   class="h-tipo-tab sai">&#8600; Sa&#237;da</button>
+        </div>
+        <span id="h-count" style="font-size:12px;color:#aaa;padding-bottom:12px"></span>
+      </div>
+      <div style="border-top:1px solid var(--bord)"></div>
       <div style="overflow-x:auto">
       <table><thead><tr>
         <th style="width:32px;text-align:center"><input type="checkbox" id="h-sel-all" title="Selecionar todos" onchange="toggleSelAll(this.checked)" style="cursor:pointer;width:14px;height:14px"></th>
@@ -1704,14 +1720,12 @@ function rendChart(divId,legId,mov,dd){
 var hSortCol='Data',hSortDir=-1,hFutFilt='',hMovFilt='';
 function setHSort(col){if(hSortCol===col){hSortDir*=-1;}else{hSortCol=col;hSortDir=(col==='Pago'||col==='NFem')?1:-1;}rendHist();}
 function _updTipoToggle(){
-  var ativ='background:#1a1a1a;color:#fff;', inativ='background:transparent;color:#555;';
   var map={'':'h-tipo-todos','Entrada':'h-tipo-entrada','Saída':'h-tipo-saida'};
-  Object.keys(map).forEach(function(k){var b=R(map[k]);if(b)b.style.cssText='padding:7px 14px;border:none;font-size:12px;font-weight:700;cursor:pointer;'+(hMovFilt===k?ativ:inativ);});
+  Object.keys(map).forEach(function(k){var b=R(map[k]);if(!b)return;b.classList.toggle('act',hMovFilt===k);});
 }
 function _updStatToggle(){
-  var ativ='background:#1a1a1a;color:#fff;', inativ='background:transparent;color:#555;';
   var map={'':'h-stat-todos','receber':'h-stat-receber','pagar':'h-stat-pagar','pago':'h-stat-pago'};
-  Object.keys(map).forEach(function(k){var b=R(map[k]);if(b)b.style.cssText='padding:7px 14px;border:none;font-size:12px;font-weight:700;cursor:pointer;'+(hFutFilt===k?ativ:inativ);});
+  Object.keys(map).forEach(function(k){var b=R(map[k]);if(!b)return;b.classList.toggle('act',hFutFilt===k);});
 }
 function setHMovFilt(v){
   hMovFilt=v; _updTipoToggle();
