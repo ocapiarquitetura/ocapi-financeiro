@@ -3119,7 +3119,7 @@ function mergeFirebaseData(fdata){
     if(c.ALIASES){ALIASES=c.ALIASES;}
   }
   if(fdata&&fdata.conciliacoes){conciliacoes=fdata.conciliacoes;}
-  if(fdata&&fdata.imp_historico){imp_historico=fdata.imp_historico;if(R('p-importar')&&R('p-importar').classList.contains('act'))rendImpHistorico();}
+  if(fdata&&fdata.imp_historico){imp_historico=fdata.imp_historico;rendImpHistorico();}
   if(fdata&&fdata.concilNomesIgnorados){concilNomesIgnorados=fdata.concilNomesIgnorados.map(function(s){try{return typeof s==='string'?JSON.parse(s):s;}catch(e){return [s];}});}
   atualizarConcilBadge();
   // migração: renomear Honorário → Cliente
