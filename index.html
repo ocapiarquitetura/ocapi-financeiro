@@ -578,6 +578,17 @@ tr.row-pago td{opacity:.75}
         <button id="h-stat-pago"     onclick="setHFutFilt('pago')"    style="padding:7px 14px;border:none;background:transparent;color:#555;font-size:12px;font-weight:700;cursor:pointer">Pago</button>
       </div>
       <button class="btn btn-out" onclick="clearHFilt()" style="white-space:nowrap">&#10005; Limpar</button>
+      <button class="btn btn-out" onclick="abrirArquivo()" id="btn-arquivo" style="white-space:nowrap;color:#888;border-color:#ddd">&#128230; Arquivo</button>
+    </div>
+    <!-- Modal Arquivo -->
+    <div id="modal-arquivo" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;overflow-y:auto">
+      <div style="background:#fff;border-radius:16px;max-width:860px;margin:40px auto;padding:28px 24px;position:relative">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+          <div><h3 style="margin:0;font-size:17px">📦 Arquivo</h3><p style="margin:4px 0 0;font-size:12px;color:#aaa">Lançamentos arquivados — últimos 200. Restaure ou exclua definitivamente.</p></div>
+          <button onclick="document.getElementById('modal-arquivo').style.display='none'" style="background:transparent;border:none;font-size:22px;color:#aaa;cursor:pointer">&#10005;</button>
+        </div>
+        <div id="arquivo-lista"></div>
+      </div>
     </div>
     <div class="tbl-wrap">
       <div class="tbl-head"><h3>Lan&ccedil;amentos</h3><span id="h-count" style="font-size:12px;color:#888"></span></div>
@@ -919,8 +930,17 @@ var DADOS_BASE=dados.slice();
 function salvarLocal(){salvarFirebase();}
 function salvarFirebase(){
   if(!fbAuth||!fbAuth.currentUser){return;}
+  // Guarda 1: não salvar antes do Firebase ter carregado completamente
+  if(!fbCarregado){console.warn('[salvarFirebase] bloqueado: Firebase ainda não carregou');return;}
+  // Guarda 2: não apagar conciliacoes que existiam — evita race condition
+  if(fbTeveConciliacoes&&conciliacoes.length===0){
+    console.error('[salvarFirebase] BLOQUEADO: conciliacoes ficou vazia após ter dados. Abortando.');
+    showToast('⚠️ Proteção ativada: salvo bloqueado para não apagar conciliações','#e67e22',6000);
+    return;
+  }
   var cfg={CLI_HON:CLI_HON,RT_EMPRESAS:RT_EMPRESAS,DESPESAS:DESPESAS,DESP_MAP:DESP_MAP,ORIGENS_ENTRADA:ORIGENS_ENTRADA,ORIGENS_SAIDA:ORIGENS_SAIDA,ORIGENS_SAIDA_TIPO:ORIGENS_SAIDA_TIPO,ALIASES:ALIASES};
-  var payload=JSON.parse(JSON.stringify({dados:dados,config:cfg,conciliacoes:conciliacoes,imp_historico:imp_historico,concilNomesIgnorados:concilNomesIgnorados.map(function(g){return JSON.stringify(g);}),migrated:true,migrated_cat_v2:true}));
+  var arqSalvar=dados_arquivados.slice(-200);
+  var payload=JSON.parse(JSON.stringify({dados:dados,config:cfg,conciliacoes:conciliacoes,imp_historico:imp_historico,dados_arquivados:arqSalvar,concilNomesIgnorados:concilNomesIgnorados.map(function(g){return JSON.stringify(g);}),migrated:true,migrated_cat_v2:true}));
   var payloadBytes=new Blob([JSON.stringify(payload)]).size;
   var LIMIT=1000000;
   if(payloadBytes>LIMIT*0.9){
@@ -942,6 +962,9 @@ var ORIGENS_ENTRADA=["Cliente", "RT"];
 var ALIASES=[]; // [{extrato:'TEREZA',sistema:'Terezinha Magalhães'}]
 var conciliacoes=[]; // [{tx:{...}, match:{idx,d}, status:'pendente'}]
 var imp_historico=[]; // [{id,data,arquivo,importados,conciliacoes,aliases:[]}]
+var dados_arquivados=[]; // [{...record, _arquivadoEm:timestamp}] lixeira (max 200)
+var fbCarregado=false; // true após primeira carga completa do Firebase
+var fbTeveConciliacoes=false; // true se conciliacoes já veio com dados do Firebase
 var concilNomesIgnorados=[]; // [['Nome A','Nome B'], ...] pares ignorados na aba Conciliar Nomes
 var MES_NUM={'Janeiro':1,'Fevereiro':2,'Março':3,'Abril':4,'Maio':5,'Junho':6,'Julho':7,'Agosto':8,'Setembro':9,'Outubro':10,'Novembro':11,'Dezembro':12};
 function getMesNum(r){var m=r.Mês;if(!m)return 0;if(typeof m==='number')return m;return MES_NUM[m]||parseInt(m)||0;}
@@ -1827,7 +1850,7 @@ function rendHist(){
       dados[ri].nf_emitida=!dados[ri].nf_emitida;salvarLocal();rendHist();
     });
     tr.querySelector('.edit-btn').addEventListener('click',function(){openEdit(parseInt(this.dataset.ri));});
-    tr.querySelector('.del-btn').addEventListener('click',function(){var ri=parseInt(this.dataset.ri);if(confirm('Excluir este lançamento?')){dados.splice(ri,1);salvarLocal();rendAll();}});
+    tr.querySelector('.del-btn').addEventListener('click',function(){var ri=parseInt(this.dataset.ri);if(confirm('Mover para o Arquivo?')){arquivarRegistro(dados[ri]);dados.splice(ri,1);salvarLocal();rendAll();showToast('📦 Lançamento arquivado','#888',3000);}});
     body.appendChild(tr);
   });
   // Update sort indicators
@@ -1904,11 +1927,75 @@ function saveEdit(){
   r.nf_emitida=R('em-nf-emitida').checked;
   salvarLocal();closeEdit();rendAll();showToast('✓ Lançamento atualizado');
 }
+function abrirArquivo(){
+  document.getElementById('modal-arquivo').style.display='block';
+  rendArquivo();
+}
+function rendArquivo(){
+  var lista=document.getElementById('arquivo-lista');
+  if(!lista)return;
+  var arq=dados_arquivados.slice().reverse(); // mais recentes primeiro
+  if(!arq.length){
+    lista.innerHTML='<p style="color:#bbb;text-align:center;padding:32px 0;font-size:13px">Nenhum lançamento arquivado.</p>';
+    return;
+  }
+  var html='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px">'
+    +'<thead><tr style="background:#f8f8f8;font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:#888">'
+    +'<th style="padding:8px 10px;text-align:left">Arquivado em</th>'
+    +'<th style="padding:8px 10px;text-align:left">Data Mov.</th>'
+    +'<th style="padding:8px 10px;text-align:left">Tipo</th>'
+    +'<th style="padding:8px 10px;text-align:left">Nome</th>'
+    +'<th style="padding:8px 10px;text-align:right">Valor</th>'
+    +'<th style="padding:8px 10px;text-align:center">Ações</th>'
+    +'</tr></thead><tbody>';
+  arq.forEach(function(r,i){
+    var idx=dados_arquivados.length-1-i; // índice real no array
+    var isE=r['Movimentação']==='Entrada';
+    var nome=r.Cliente||r.Fornecedor||r.Despesa||'—';
+    var arqEm=r._arquivadoEm?new Date(r._arquivadoEm).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'}):'—';
+    html+='<tr style="border-bottom:1px solid #f5f5f5">'
+      +'<td style="padding:8px 10px;color:#aaa;font-size:11px;white-space:nowrap">'+arqEm+'</td>'
+      +'<td style="padding:8px 10px;white-space:nowrap">'+fmtDate(r.Data)+'</td>'
+      +'<td style="padding:8px 10px"><span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;background:'+(isE?'#eafaf1':'#fdf2f1')+';color:'+(isE?'#27ae60':'#c0392b')+'">'+(isE?'Entrada':'Saída')+'</span></td>'
+      +'<td style="padding:8px 10px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+nome+'</td>'
+      +'<td style="padding:8px 10px;text-align:right;font-weight:700;color:'+(isE?'#27ae60':'#c0392b')+'">R$ '+fmt(r.Valor)+'</td>'
+      +'<td style="padding:8px 10px;text-align:center;white-space:nowrap">'
+        +'<button onclick="restaurarArquivado('+idx+')" style="font-size:11px;padding:4px 10px;border:1.5px solid #27ae60;background:#eafaf1;color:#27ae60;border-radius:6px;cursor:pointer;margin-right:4px">↩ Restaurar</button>'
+        +'<button onclick="excluirArquivado('+idx+')" style="font-size:11px;padding:4px 10px;border:1.5px solid #e0e0e0;background:transparent;color:#c0392b;border-radius:6px;cursor:pointer">🗑 Excluir</button>'
+      +'</td>'
+      +'</tr>';
+  });
+  html+='</tbody></table></div>';
+  lista.innerHTML=html;
+}
+function restaurarArquivado(idx){
+  var r=dados_arquivados[idx];
+  if(!r)return;
+  var copia=JSON.parse(JSON.stringify(r));
+  delete copia._arquivadoEm;
+  dados.push(copia);
+  dados_arquivados.splice(idx,1);
+  salvarLocal();rendAll();rendArquivo();
+  showToast('✓ Lançamento restaurado','#27ae60',3000);
+}
+function excluirArquivado(idx){
+  if(!confirm('Excluir definitivamente? Esta ação não pode ser desfeita.'))return;
+  dados_arquivados.splice(idx,1);
+  salvarLocal();rendArquivo();
+  showToast('🗑 Excluído definitivamente','#e74c3c',3000);
+}
+function arquivarRegistro(r){
+  var c=JSON.parse(JSON.stringify(r));
+  c._arquivadoEm=Date.now();
+  dados_arquivados.push(c);
+  if(dados_arquivados.length>200)dados_arquivados=dados_arquivados.slice(-200);
+}
 function deleteEdit(){
   if(editRI<0||!dados[editRI])return;
-  if(!confirm('Excluir este lançamento? Esta ação não pode ser desfeita.'))return;
+  if(!confirm('Mover para o Arquivo? O lançamento ficará disponível para restauração.'))return;
+  arquivarRegistro(dados[editRI]);
   dados.splice(editRI,1);
-  salvarLocal();closeEdit();rendAll();showToast('🗑 Lançamento excluído','#e74c3c',3000);
+  salvarLocal();closeEdit();rendAll();showToast('📦 Lançamento arquivado','#888',3000);
 }
 function atualizarAlertasBadge(){
   var t=today();
@@ -2848,11 +2935,11 @@ function updBulkBar(){
 }
 function bulkDelete(){
   var n=hSelected.size;
-  if(!confirm('Excluir '+n+' lançamento'+(n>1?'s':'')+' selecionado'+(n>1?'s':'')+' permanentemente?'))return;
+  if(!confirm('Mover '+n+' lançamento'+(n>1?'s':'')+' para o Arquivo?'))return;
   var indices=Array.from(hSelected).sort(function(a,b){return b-a;});
-  indices.forEach(function(ri){dados.splice(ri,1);});
+  indices.forEach(function(ri){arquivarRegistro(dados[ri]);dados.splice(ri,1);});
   hSelected.clear();
-  salvarLocal();rendAll();updBulkBar();
+  salvarLocal();rendAll();updBulkBar();showToast('📦 '+n+' lançamento'+(n>1?'s':'')+' arquivado'+(n>1?'s':''),'#888',3000);
 }
 function importarExtrato(){
   var registros=[
@@ -3118,9 +3205,11 @@ function mergeFirebaseData(fdata){
     if(c.ORIGENS_SAIDA_TIPO&&typeof c.ORIGENS_SAIDA_TIPO==='object'){Object.keys(ORIGENS_SAIDA_TIPO).forEach(function(k){delete ORIGENS_SAIDA_TIPO[k];});Object.assign(ORIGENS_SAIDA_TIPO,c.ORIGENS_SAIDA_TIPO);}
     if(c.ALIASES){ALIASES=c.ALIASES;}
   }
-  if(fdata&&fdata.conciliacoes){conciliacoes=fdata.conciliacoes;}
+  if(fdata&&fdata.conciliacoes){conciliacoes=fdata.conciliacoes;if(conciliacoes.length>0)fbTeveConciliacoes=true;}
   if(fdata&&fdata.imp_historico){imp_historico=fdata.imp_historico;rendImpHistorico();}
+  if(fdata&&fdata.dados_arquivados){dados_arquivados=fdata.dados_arquivados;}
   if(fdata&&fdata.concilNomesIgnorados){concilNomesIgnorados=fdata.concilNomesIgnorados.map(function(s){try{return typeof s==='string'?JSON.parse(s):s;}catch(e){return [s];}});}
+  if(dados.length>0)fbCarregado=true;
   atualizarConcilBadge();
   // migração: renomear Honorário → Cliente
   var honIdx=ORIGENS_ENTRADA.indexOf('Honorário');
@@ -3140,11 +3229,11 @@ function mergeFirebaseData(fdata){
   dados.forEach(function(r){if(r.fonte_import&&r.DataLanc&&r.DataLanc===r.Data&&r.DataLanc!==hoje){r.DataLanc=hoje;migrou=true;}});
   // migração: registros importados com nf_emitida=true mas sem campo 'Nota Fiscal' → corrigir
   dados.forEach(function(r){if(r.fonte_import&&r.nf_emitida&&!r['Nota Fiscal']){r['Nota Fiscal']='Sim';r.nf_emitida=false;migrou=true;}});
-  if(migrou)salvarLocal();
+  if(migrou&&fbCarregado)salvarLocal();
   // Migração V2: reclassificação contábil
   if(migrarCategoriasV2(fdata)){
     populateOrigensS&&populateOrigensS();
-    setTimeout(function(){salvarLocal();},800);
+    setTimeout(function(){if(fbCarregado)salvarLocal();},800);
   }
 }
 
