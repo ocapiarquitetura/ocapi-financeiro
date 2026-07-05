@@ -3209,7 +3209,7 @@ function mergeFirebaseData(fdata){
   if(fdata&&fdata.imp_historico){imp_historico=fdata.imp_historico;rendImpHistorico();}
   if(fdata&&fdata.dados_arquivados){dados_arquivados=fdata.dados_arquivados;}
   if(fdata&&fdata.concilNomesIgnorados){concilNomesIgnorados=fdata.concilNomesIgnorados.map(function(s){try{return typeof s==='string'?JSON.parse(s):s;}catch(e){return [s];}});}
-  if(dados.length>0)fbCarregado=true;
+  if(dados.length>0||(fdata&&fdata.migrated))fbCarregado=true;
   atualizarConcilBadge();
   // migração: renomear Honorário → Cliente
   var honIdx=ORIGENS_ENTRADA.indexOf('Honorário');
@@ -3579,7 +3579,8 @@ function impDeduplicar(){
   impTxs.forEach(function(tx){
     var dup = dados.some(function(d){
       return d.Data === tx.data &&
-             Math.abs((parseFloat(d.Valor)||0) - tx.valor) < 0.01;
+             Math.abs((parseFloat(d.Valor)||0) - tx.valor) < 0.01 &&
+             d['Movimentação'] === tx.tipo;
     });
     if(dup){
       tx.duplicata = true;
