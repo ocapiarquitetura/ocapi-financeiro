@@ -3860,11 +3860,11 @@ function impRenderLista(){
       row += TD(despesaCell,'min-width:150px');
     }
     row += TD('<span style="font-size:12px;font-weight:700;color:'+tipoClr+';white-space:nowrap">'+fmt(t.valor)+'</span>','text-align:right');
+    if(modo!=='Saída') row += TD(nfSel(i,t.nf),'min-width:90px');
     row += TD(excBtn,'text-align:center;white-space:nowrap;width:70px');
     row += '</tr>';
-    var nCols = 1 + (showTipo?1:0) + (showEnt?3:0) + (showSai?2:0) + 1 + 1;
-    var nfRowHtml = (modo!=='Saída') ? '<div style="display:flex;align-items:center;gap:6px"><label style="font-size:11px;color:#888;white-space:nowrap">🧾 NF:</label>'+nfSel(i,t.nf)+'</div>' : '';
-    var detRow = '<tr id="obs-det-'+i+'" style="display:none;background:#f0f7ff"><td colspan="'+nCols+'" style="padding:8px 16px"><div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">'+nfRowHtml+'<div style="display:flex;align-items:center;gap:6px;flex:1;min-width:220px"><label style="font-size:11px;color:#888;white-space:nowrap">💬 Obs:</label><input type="text" value="'+(t.obs||'').replace(/"/g,'&quot;')+'" onchange="impUpdField('+i+',\'obs\',this.value)" placeholder="Observação..." style="border:1px solid #c8e0f4;border-radius:7px;padding:5px 10px;font-size:12px;flex:1;background:#fff"></div></div></td></tr>';
+    var nCols = 1 + (showTipo?1:0) + (showEnt?3:0) + (showSai?2:0) + 1 + (modo!=='Saída'?1:0) + 1;
+    var detRow = '<tr id="obs-det-'+i+'" style="display:none;background:#f0f7ff"><td colspan="'+nCols+'" style="padding:8px 16px"><div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap"><div style="display:flex;align-items:center;gap:6px;flex:1;min-width:220px"><label style="font-size:11px;color:#888;white-space:nowrap">💬 Obs:</label><input type="text" value="'+(t.obs||'').replace(/"/g,'&quot;')+'" onchange="impUpdField('+i+',\'obs\',this.value)" placeholder="Observação..." style="border:1px solid #c8e0f4;border-radius:7px;padding:5px 10px;font-size:12px;flex:1;background:#fff"></div></div></td></tr>';
     return row + detRow;
   }).join('');
 
@@ -3875,6 +3875,7 @@ function impRenderLista(){
   if(showEnt){ thead += TH('ORIGEM','90px'); thead += TH('CLIENTE'); thead += TH('EMPRESA RT'); }
   if(showSai){ thead += TH('CATEGORIA','110px'); thead += TH('DESPESA'); }
   thead += TH('VALOR');
+  if(modo!=='Saída') thead += TH('NF','90px');
   thead += TH('');
   thead += '</tr>';
 
