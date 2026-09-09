@@ -3403,9 +3403,10 @@ function impExtrairTransacoes(texto){
   // Normalize: collapse multiple spaces within lines but keep line breaks
   var linhas = texto.split('\n').map(function(l){return l.replace(/\s{2,}/g,' ').trim();});
 
-  // Helper: parse valor brasileiro "1.234,56" or "1234.56" → float
+  // Helper: parse valor brasileiro "1.234,56" ou "1234.56" → float
+  // Remove espaços internos (pdfjs às vezes extrai "326 ,82" em vez de "326,82")
   function parseBRL(s){
-    s = s.replace(/R\$\s*/,'').trim();
+    s = s.replace(/R\$\s*/,'').trim().replace(/\s/g,'');
     // Formato BR: ponto como milhar, vírgula como decimal
     if(s.match(/\d+\.\d{3},\d{2}/)) return parseFloat(s.replace(/\./g,'').replace(',','.'));
     // Só vírgula como decimal
@@ -3413,8 +3414,8 @@ function impExtrairTransacoes(texto){
     return parseFloat(s.replace(',','.'));
   }
 
-  // Pattern para valor: -? opcionalmente R$ números
-  var PAT_VAL = '(-?R?\\$?\\s*[\\d\\.]+,[\\d]+)';
+  // Pattern para valor: aceita espaço opcional antes/após vírgula (bug pdfjs: "326 ,82")
+  var PAT_VAL = '(-?R?\\$?\\s*[\\d\\.]+\\s*,[\\s]*[\\d]+)';
 
   linhas.forEach(function(linha){
     linha = linha.trim();
@@ -3429,12 +3430,12 @@ function impExtrairTransacoes(texto){
     if(!currentDate) return;
 
     // Tenta padrão principal: "TIPO: descrição VALOR SALDO"
-    var m = linha.match(/^([\w\sÀ-ú\/\-]+?):\s*"?(.+?)"?\s+(-?R?\$?\s*[\d\.]+,[\d]+)\s+(-?R?\$?\s*[\d\.]+,[\d]+)\s*$/i);
+    var m = linha.match(/^([\w\sÀ-ú\/\-]+?):\s*"?(.+?)"?\s+(-?R?\$?\s*[\d\.]+\s*,\s*[\d]+)\s+(-?R?\$?\s*[\d\.]+\s*,\s*[\d]+)\s*$/i);
     // Fallback: "TIPO: descrição VALOR" (sem saldo separado)
-    if(!m) m = linha.match(/^([\w\sÀ-ú\/\-]+?):\s*"?(.+?)"?\s+(-?R?\$?\s*[\d\.]+,[\d]+)\s*$/i);
+    if(!m) m = linha.match(/^([\w\sÀ-ú\/\-]+?):\s*"?(.+?)"?\s+(-?R?\$?\s*[\d\.]+\s*,\s*[\d]+)\s*$/i);
     // Fallback 2: sem dois-pontos ex: "DARF NUMERADO -R$ 524,45 R$ 13.096,80"
     if(!m){
-      var mNc=linha.match(/^([A-Z][A-Z\s]+?)\s+(-R\$?\s*[\d\.]+,[\d]+)\s+(R\$?\s*[\d\.]+,[\d]+)\s*$/);
+      var mNc=linha.match(/^([A-Z][A-Z\s]+?)\s+(-R\$?\s*[\d\.]+\s*,\s*[\d]+)\s+(R\$?\s*[\d\.]+\s*,\s*[\d]+)\s*$/);
       if(mNc&&!/saldo|sac|fale|ouvidoria|defici/i.test(mNc[1])){
         m=[linha,mNc[1].trim(),mNc[1].trim(),mNc[2],mNc[3]];
       }
